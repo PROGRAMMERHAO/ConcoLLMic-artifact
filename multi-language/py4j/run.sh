@@ -40,12 +40,17 @@ echo "Start time: $(date)" >> ${SHARED_DIR}/execution_command.log
 setup_concolic_environment() {
     echo "Setting up Concolic environment"
     pushd /concolic-agent
-    git fetch origin
-    git reset --hard origin/main    # pull the latest version
-    pip install -r requirements.txt
-    pip install -r requirements-dev.txt
-    git_version=$(git rev-parse HEAD)
-    echo "git version: $git_version" >> ${SHARED_DIR}/execution_command.log
+    if [ "${USE_LOCAL_CODE:-0}" = "1" ]; then
+        echo "USE_LOCAL_CODE=1: skipping git pull, using mounted local code"
+        echo "USE_LOCAL_CODE=1 (local code, no git pull)" >> ${SHARED_DIR}/execution_command.log
+    else
+        git fetch origin
+        git reset --hard origin/main    # pull the latest version
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        git_version=$(git rev-parse HEAD)
+        echo "git version: $git_version" >> ${SHARED_DIR}/execution_command.log
+    fi
     popd
 }
 

@@ -19,6 +19,9 @@ else
     echo "Using default timeout of 60 seconds for testing oggenc with $TESTER_NAME."
 fi
 
+# Record run start time (Unix timestamp) for elapsed-time calculations
+RUN_START_TIME=$(date +%s)
+
 # Set default paths
 
 current_time=$(date +%m%d%H%M)
@@ -58,12 +61,17 @@ echo "Start time: $(date)" >> ${SHARED_DIR}/execution_command.log
 setup_concolic_environment() {
     echo "Setting up Concolic environment"
     pushd /concolic-agent
-    git fetch origin
-    git reset --hard origin/main    # pull the latest version
-    pip install -r requirements.txt
-    pip install -r requirements-dev.txt
-    git_version=$(git rev-parse HEAD)
-    echo "git version: $git_version" >> ${SHARED_DIR}/execution_command.log
+    if [ "${USE_LOCAL_CODE:-0}" = "1" ]; then
+        echo "USE_LOCAL_CODE=1: skipping git pull, using mounted local code"
+        echo "USE_LOCAL_CODE=1 (local code, no git pull)" >> ${SHARED_DIR}/execution_command.log
+    else
+        git fetch origin
+        git reset --hard origin/main    # pull the latest version
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        git_version=$(git rev-parse HEAD)
+        echo "git version: $git_version" >> ${SHARED_DIR}/execution_command.log
+    fi
     popd
 }
 
@@ -121,9 +129,41 @@ case $TESTER_NAME in
     # call the wrapped function to pull the latest version of ConcoLLMic
     setup_concolic_environment
 
+    # DIRECTED_MODE controls the directed testing variant:
+    #   "" or unset    -> undirected baseline (--plateau_slot 30)
+    #   "monitor"      -> undirected + monitor-target (tracks reach time without directing)
+    #   "directed"     -> full directed mode (backward reasoning + distance-aware DFS)
+    #   "directed-nobr"-> directed without backward reasoning (distance-aware DFS only)
+    #
+    # DIRECTED_TARGET sets the target, e.g. "krep.c:1556" (required for all directed variants)
+    DIRECTED_MODE="${DIRECTED_MODE:-}"
+    DIRECTED_TARGET="${DIRECTED_TARGET:-}"
+
+    case "$DIRECTED_MODE" in
+      "directed")
+        echo "Directed mode: full (backward reasoning + distance-aware DFS)"
+        EXTRA_ARGS="--target ${DIRECTED_TARGET} --stop-on-target"
+        ;;
+      "directed-nobr")
+        echo "Directed mode: no backward reasoning (distance-aware DFS only)"
+        EXTRA_ARGS="--target ${DIRECTED_TARGET} --stop-on-target --no-backward-reasoning"
+        ;;
+      "monitor")
+        echo "Directed mode: monitor-only (undirected + tracks reach time)"
+        EXTRA_ARGS="--monitor-target ${DIRECTED_TARGET} --plateau_slot 30"
+        ;;
+      *)
+        echo "Directed mode: undirected baseline"
+        EXTRA_ARGS="--plateau_slot 30"
+        ;;
+    esac
+
+    echo "DIRECTED_MODE=${DIRECTED_MODE} DIRECTED_TARGET=${DIRECTED_TARGET}" >> ${SHARED_DIR}/execution_command.log
+    echo "EXTRA_ARGS=${EXTRA_ARGS}" >> ${SHARED_DIR}/execution_command.log
+
     cd /concolic-agent
     timeout -k 10 $TIMEOUT_SECONDS /bin/bash -c \
-        "python3 ACE.py run --project_dir $INSTR_ROOT --execution ${INPUT}/run.py --timeout 10 --out $OUTPUT --plateau_slot 30" \
+        "python3 ACE.py run --project_dir $INSTR_ROOT --execution ${INPUT}/run.py --timeout 10 --out $OUTPUT ${EXTRA_ARGS}" \
         > /dev/null 2>&1 &
     wait
     export QUEUE_DIR="$OUTPUT"
@@ -149,6 +189,30 @@ covfile="${SHARED_DIR}/coverage_summary.csv"
 # collect coverage
 if [ "$TESTER_NAME" != "concolic" ]; then
     echo "Time,l_per,l_abs,b_per,b_abs,covered_times_of_line" > $covfile
+
+    # --- Target-line first-reach detection ---
+    # If DIRECTED_TARGET is set (e.g. "krep.c:1556"), track when that line is
+    # first covered during replay and write the elapsed time to target_reached.log.
+    target_reached_log="${SHARED_DIR}/target_reached.log"
+    target_first_reached=0   # 0 = not yet reached
+    target_content=""
+    target_file_rel=""
+    target_line_no=""
+    if [ -n "${DIRECTED_TARGET:-}" ] && [[ "$DIRECTED_TARGET" == *:* ]]; then
+        target_file_rel="${DIRECTED_TARGET%%:*}"
+        target_line_no="${DIRECTED_TARGET##*:}"
+        target_line_no="${target_line_no%%-*}"   # handle "1556-1570" -> use first line
+        if [ -f "${GCOV_ROOT}/${target_file_rel}" ]; then
+            target_content=$(sed -n "${target_line_no}p" "${GCOV_ROOT}/${target_file_rel}" \
+                             | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            echo "Target tracking: ${target_file_rel}:${target_line_no} -> '${target_content}'" \
+                | tee -a "$target_reached_log"
+        else
+            echo "WARNING: DIRECTED_TARGET file ${GCOV_ROOT}/${target_file_rel} not found, skipping target tracking" \
+                | tee -a "$target_reached_log"
+        fi
+    fi
+    # -----------------------------------------
 
     # initialize the last coverage collection time
     last_cov_time=0
@@ -200,15 +264,38 @@ if [ "$TESTER_NAME" != "concolic" ]; then
             cov_data=$(bash /coverage.sh)
 
             echo "$time,$cov_data" >> $covfile
-            
+
             # update the last execution time
             last_cov_time=$time
+
+            # Check if target line was first reached in this batch
+            if [ -n "$target_content" ] && [ "$target_first_reached" = "0" ]; then
+                hit=$(cd $GCOV_ROOT && bash /coverage.sh "$target_file_rel" "$target_line_no" "$target_content" | cut -d',' -f5)
+                if [ "${hit:-0}" -gt "0" ] 2>/dev/null; then
+                    target_first_reached="$time"
+                    elapsed=$(( time - RUN_START_TIME ))
+                    echo "TARGET REACHED: ${target_file_rel}:${target_line_no} first covered at Unix time $time (${elapsed}s elapsed since run start), seed: $seed" \
+                        | tee -a "$target_reached_log"
+                fi
+            fi
         fi
     done
 
     # final processing
     cov_data=$(bash /coverage.sh)
     echo "$time,$cov_data" >> $covfile
+
+    # Final target reach summary
+    if [ -n "$target_content" ]; then
+        if [ "$target_first_reached" != "0" ]; then
+            elapsed=$(( target_first_reached - RUN_START_TIME ))
+            echo "SUMMARY: ${TESTER_NAME} reached ${DIRECTED_TARGET} after ${elapsed}s" \
+                | tee -a "$target_reached_log"
+        else
+            echo "SUMMARY: ${TESTER_NAME} did NOT reach ${DIRECTED_TARGET} within the timeout" \
+                | tee -a "$target_reached_log"
+        fi
+    fi
 
 else
     cd /concolic-agent

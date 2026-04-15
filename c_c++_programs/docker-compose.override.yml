@@ -1,0 +1,145 @@
+# docker-compose.override.yml
+#
+# Use your LOCAL modified ConcoLLMic code instead of pulling from GitHub main.
+#
+# Usage (from experiments/benchmarks/c_c++_programs/):
+#
+#   TIMEOUT=48h ANTHROPIC_API_KEY="..." \
+#   docker-compose up --build --scale woff2-concolic=1 woff2-concolic
+#
+# docker-compose automatically merges this file with docker-compose.yml.
+# Set USE_LOCAL_CODE=1 and mount the repo root over /concolic-agent.
+# The run.sh git-pull step is skipped when USE_LOCAL_CODE=1.
+
+x-local-concolic: &local-concolic
+  environment:
+    USE_LOCAL_CODE: "1"
+  volumes:
+    - /home/haozeyu/ConcoLLMic:/concolic-agent:ro
+
+services:
+  bc-concolic:
+    <<: *local-concolic
+  confetti-concolic:
+    <<: *local-concolic
+  krep-concolic:
+    <<: *local-concolic
+  libmatheval-concolic:
+    <<: *local-concolic
+  libsoup-concolic:
+    <<: *local-concolic
+  libyaml-concolic:
+    <<: *local-concolic
+  oggenc-concolic:
+    <<: *local-concolic
+  woff2-concolic:
+    <<: *local-concolic
+
+  # ---------- directed testing variants for krep ----------
+  # Compare three modes for reaching krep.c:1556 (the known vulnerability).
+  # Results land in krep/results/<mode>-<timestamp>-<hostname>/.
+  # Each service writes a LOG SUMMARY with "Target N: ... REACHED at X.Xs" on exit.
+
+  krep-directed:
+    <<: *local-concolic
+    build:
+      context: ./krep
+      dockerfile: concolic.Dockerfile
+    image: krep-concolic:latest
+    volumes:
+      - ./krep/results:/shared/:rw
+      - /home/haozeyu/ConcoLLMic:/concolic-agent:ro
+    environment:
+      USE_LOCAL_CODE: "1"
+      DIRECTED_MODE: "directed"
+      DIRECTED_TARGET: "krep.c:1556"
+    command: ["/bin/bash", "/run.sh", "concolic", "${TIMEOUT:-14400}"]
+
+  krep-directed-nobr:
+    <<: *local-concolic
+    build:
+      context: ./krep
+      dockerfile: concolic.Dockerfile
+    image: krep-concolic:latest
+    volumes:
+      - ./krep/results:/shared/:rw
+      - /home/haozeyu/ConcoLLMic:/concolic-agent:ro
+    environment:
+      USE_LOCAL_CODE: "1"
+      DIRECTED_MODE: "directed-nobr"
+      DIRECTED_TARGET: "krep.c:1556"
+    command: ["/bin/bash", "/run.sh", "concolic", "${TIMEOUT:-14400}"]
+
+  krep-monitor:
+    <<: *local-concolic
+    build:
+      context: ./krep
+      dockerfile: concolic.Dockerfile
+    image: krep-concolic:latest
+    volumes:
+      - ./krep/results:/shared/:rw
+      - /home/haozeyu/ConcoLLMic:/concolic-agent:ro
+    environment:
+      USE_LOCAL_CODE: "1"
+      DIRECTED_MODE: "monitor"
+      DIRECTED_TARGET: "krep.c:1556"
+    command: ["/bin/bash", "/run.sh", "concolic", "${TIMEOUT:-14400}"]
+
+  # ---------- traditional baseline tools for krep (with target tracking) ----------
+  # DIRECTED_TARGET is passed so run.sh records when each tool first covers krep.c:1556
+  # in target_reached.log (alongside the normal coverage_summary.csv).
+
+  krep-klee-directed:
+    build:
+      context: ./krep
+      dockerfile: klee.Dockerfile
+    image: krep-klee:latest
+    volumes:
+      - ./krep/results:/shared/:rw
+    environment:
+      DIRECTED_TARGET: "krep.c:1556"
+    command: ["/bin/bash", "/run.sh", "klee", "${TIMEOUT:-14400}"]
+
+  krep-klee-pending-directed:
+    build:
+      context: ./krep
+      dockerfile: klee-pending.Dockerfile
+    image: krep-klee-pending:latest
+    volumes:
+      - ./krep/results:/shared/:rw
+    environment:
+      DIRECTED_TARGET: "krep.c:1556"
+    command: ["/bin/bash", "/run.sh", "klee-pending", "${TIMEOUT:-14400}"]
+
+  krep-aflplusplus-directed:
+    build:
+      context: ./krep
+      dockerfile: aflplusplus.Dockerfile
+    image: krep-aflplusplus:latest
+    volumes:
+      - ./krep/results:/shared/:rw
+    environment:
+      DIRECTED_TARGET: "krep.c:1556"
+    command: ["/bin/bash", "/run.sh", "aflplusplus", "${TIMEOUT:-14400}"]
+
+  krep-symcc-directed:
+    build:
+      context: ./krep
+      dockerfile: symcc.Dockerfile
+    image: krep-symcc:latest
+    volumes:
+      - ./krep/results:/shared/:rw
+    environment:
+      DIRECTED_TARGET: "krep.c:1556"
+    command: ["/bin/bash", "/run.sh", "symcc", "${TIMEOUT:-14400}"]
+
+  krep-symsan-directed:
+    build:
+      context: ./krep
+      dockerfile: symsan.Dockerfile
+    image: krep-symsan:latest
+    volumes:
+      - ./krep/results:/shared/:rw
+    environment:
+      DIRECTED_TARGET: "krep.c:1556"
+    command: ["/bin/bash", "/run.sh", "symsan", "${TIMEOUT:-14400}"]
