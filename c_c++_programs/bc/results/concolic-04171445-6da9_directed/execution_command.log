@@ -1,0 +1,6 @@
+Executing command: /run.sh concolic 1200
+Start time: Fri Apr 17 14:45:42 UTC 2026
+USE_LOCAL_CODE=1 (local code, no git pull)
+DIRECTED_MODE=directed-nobr DIRECTED_TARGET=bc/bc.c:500
+EXTRA_ARGS=--target bc/bc.c:500 --stop-on-target --no-backward-reasoning
+python3 ACE.py run --project_dir /bc-instr --execution /shared/concolic-04171445-6da9/input/bc.py --timeout 10 --out /shared/concolic-04171445-6da9/output --target bc/bc.c:500 --stop-on-target --no-backward-reasoning

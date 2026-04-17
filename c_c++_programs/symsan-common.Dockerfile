@@ -1,4 +1,6 @@
-FROM ubuntu:noble
+FROM ubuntu:22.04
+
+RUN sed -i 's|http://archive.ubuntu.com|http://mirrors.aliyun.com|g; s|http://security.ubuntu.com|http://mirrors.aliyun.com|g' /etc/apt/sources.list
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
@@ -6,8 +8,8 @@ ENV TZ=Etc/UTC
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
-RUN apt-get update
-RUN apt-get install -y cmake llvm-14 clang-14 libc++-14-dev libc++abi-14-dev libunwind-14-dev \
+RUN apt-get update --fix-missing
+RUN apt-get install -y --fix-missing cmake llvm-14 clang-14 libc++-14-dev libc++abi-14-dev libunwind-14-dev \
     python3-minimal python-is-python3 zlib1g-dev git joe libprotobuf-dev libboost-all-dev
 
 WORKDIR /workdir
@@ -17,7 +19,7 @@ RUN git clone --depth=1 https://github.com/AFLplusplus/AFLplusplus /workdir/aflp
 ENV LLVM_CONFIG=llvm-config-14
 RUN cd /workdir/aflpp && CC=clang-14 CXX=clang++-14 make install
 
-RUN apt-get install -y libz3-dev libgoogle-perftools-dev wget git \
+RUN apt-get install -y libz3-dev libunwind-dev libgoogle-perftools-dev wget git \
     python3-pip \
     lcov \
     wget \
@@ -28,7 +30,7 @@ RUN apt-get install -y libz3-dev libgoogle-perftools-dev wget git \
     libtool \
     pkg-config
 
-RUN python3 -m pip install gcovr==6.0 --break-system-packages
+RUN python3 -m pip install gcovr==6.0
 
 RUN cd symsan/ && mkdir -p build && \
     cd build && CC=clang-14 CXX=clang++-14 cmake -DCMAKE_INSTALL_PREFIX=. -DAFLPP_PATH=/workdir/aflpp ../  && \

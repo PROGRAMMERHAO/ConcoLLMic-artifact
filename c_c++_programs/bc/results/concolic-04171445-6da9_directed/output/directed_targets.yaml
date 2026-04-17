@@ -1,0 +1,29 @@
+mode: directed-no-backward-reasoning
+targets:
+- file_path: bc/bc.c
+  line_start: 500
+  line_end: 500
+  reached: false
+  reached_by_tc_id: null
+  reached_at_time: null
+progress:
+  distance_history:
+  - !!python/tuple
+    - 1
+    - 4
+  - !!python/tuple
+    - 2
+    - 4
+  - !!python/tuple
+    - 3
+    - 4
+  - !!python/tuple
+    - 4
+    - 4
+  - !!python/tuple
+    - 5
+    - 4
+  best_distance: 4
+  stall_counter: 0
+  current_strategy: directed
+call_graph_size: 166

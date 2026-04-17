@@ -9,6 +9,8 @@ FROM ubuntu:22.04 AS aflplusplus
 LABEL "maintainer"="AFL++ team <afl@aflplus.plus>"
 LABEL "about"="AFLplusplus container image"
 
+RUN sed -i 's|http://archive.ubuntu.com|http://mirrors.aliyun.com|g; s|http://security.ubuntu.com|http://mirrors.aliyun.com|g' /etc/apt/sources.list
+
 ### Comment out to enable these features
 # Only available on specific ARM64 boards
 ENV NO_CORESIGHT=1

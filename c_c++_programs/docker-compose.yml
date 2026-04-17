@@ -12,10 +12,12 @@ x-common-resources: &common-resources
     core: 0
   environment:
     ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+    OPENROUTER_API_KEY: "${OPENROUTER_API_KEY}"
 
 services:
   # -------------- Base Images --------------
   symcc:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: symcc-common.Dockerfile
@@ -24,6 +26,7 @@ services:
     image: symcc:latest
 
   symsan:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: symsan-common.Dockerfile
@@ -36,12 +39,14 @@ services:
     image: concolic:latest
 
   klee:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: klee-common.Dockerfile
     image: klee:latest
 
   klee-float:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: klee-float-common.Dockerfile

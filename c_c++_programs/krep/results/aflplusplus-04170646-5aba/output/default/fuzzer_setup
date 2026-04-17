@@ -1,0 +1,9 @@
+# environment variables:
+AFL_CUSTOM_INFO_PROGRAM=/krep-aflplusplus/krep
+AFL_CUSTOM_INFO_PROGRAM_ARGV=test @@
+AFL_CUSTOM_INFO_OUT=/shared/aflplusplus-04170646-5aba/output/default
+AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
+AFL_TRY_AFFINITY=1
+AFL_SKIP_CPUFREQ=1
+# command line:
+'afl-fuzz' '-i' '/shared/aflplusplus-04170646-5aba/input' '-o' '/shared/aflplusplus-04170646-5aba/output' '/krep-aflplusplus/krep' 'test' '@@'

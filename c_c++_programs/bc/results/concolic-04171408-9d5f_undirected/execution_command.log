@@ -1,0 +1,6 @@
+Executing command: /run.sh concolic 1200
+Start time: Fri Apr 17 14:08:11 UTC 2026
+USE_LOCAL_CODE=1 (local code, no git pull)
+DIRECTED_MODE=monitor DIRECTED_TARGET=bc/bc.c:500
+EXTRA_ARGS=--monitor-target bc/bc.c:500 --plateau_slot 30
+python3 ACE.py run --project_dir /bc-instr --execution /shared/concolic-04171408-9d5f/input/bc.py --timeout 10 --out /shared/concolic-04171408-9d5f/output --monitor-target bc/bc.c:500 --plateau_slot 30

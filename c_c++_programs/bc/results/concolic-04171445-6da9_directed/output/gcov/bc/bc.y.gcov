@@ -1,0 +1,1138 @@
+        -:    0:Source:bc.y
+        -:    0:Graph:./bc.gcno
+        -:    0:Data:./bc.gcda
+        -:    0:Runs:21
+        -:    1:/*  This file is part of GNU bc.
+        -:    2:
+        -:    3:    Copyright (C) 1991-1994, 1997, 2006, 2008, 2012-2017 Free Software Foundation, Inc.
+        -:    4:
+        -:    5:    This program is free software; you can redistribute it and/or modify
+        -:    6:    it under the terms of the GNU General Public License as published by
+        -:    7:    the Free Software Foundation; either version 3 of the License , or
+        -:    8:    (at your option) any later version.
+        -:    9:
+        -:   10:    This program is distributed in the hope that it will be useful,
+        -:   11:    but WITHOUT ANY WARRANTY; without even the implied warranty of
+        -:   12:    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        -:   13:    GNU General Public License for more details.
+        -:   14:
+        -:   15:    You should have received a copy of the GNU General Public License
+        -:   16:    along with this program; see the file COPYING.  If not, see
+        -:   17:    <http://www.gnu.org/licenses>.
+        -:   18:
+        -:   19:    You may contact the author by:
+        -:   20:       e-mail:  philnelson@acm.org
+        -:   21:      us-mail:  Philip A. Nelson
+        -:   22:                Computer Science Department, 9062
+        -:   23:                Western Washington University
+        -:   24:                Bellingham, WA 98226-9062
+        -:   25:       
+        -:   26:*************************************************************************/
+        -:   27:
+        -:   28:/* bc.y: The grammar for a POSIX compatable bc processor with some
+        -:   29:         extensions to the language. */
+        -:   30:
+        -:   31:%{
+        -:   32:
+        -:   33:#include "bcdefs.h"
+        -:   34:#include "global.h"
+        -:   35:#include "proto.h"
+        -:   36:
+        -:   37:/* current function number. */
+        -:   38:int cur_func = -1;
+        -:   39:
+        -:   40:/* Expression encoded information -- See comment at expression rules. */
+        -:   41:#define EX_ASSGN 0 
+        -:   42:#define EX_REG   1
+        -:   43:#define EX_COMP  2
+        -:   44:#define EX_PAREN 4
+        -:   45:#define EX_VOID  8 
+        -:   46:#define EX_EMPTY 16
+        -:   47:
+        -:   48:%}
+        -:   49:
+        -:   50:%start program
+        -:   51:
+        -:   52:%union {
+        -:   53:	char	 *s_value;
+        -:   54:	char	  c_value;
+        -:   55:	int	  i_value;
+        -:   56:	arg_list *a_value;
+        -:   57:       }
+        -:   58:
+        -:   59:/* Extensions over POSIX bc.
+        -:   60:   a) NAME was LETTER.  This grammar allows longer names.
+        -:   61:      Single letter names will still work.
+        -:   62:   b) Relational_expression allowed only one comparison.
+        -:   63:      This grammar has added boolean expressions with
+        -:   64:      && (and) || (or) and ! (not) and allowed all of them in
+        -:   65:      full expressions.
+        -:   66:   c) Added an else to the if.
+        -:   67:   d) Call by variable array parameters
+        -:   68:   e) read() procedure that reads a number under program control from stdin.
+        -:   69:   f) halt statement that halts the the program under program control.  It
+        -:   70:      is an executed statement.
+        -:   71:   g) continue statement for for loops.
+        -:   72:   h) optional expressions in the for loop.
+        -:   73:   i) print statement to print multiple numbers per line.
+        -:   74:   j) warranty statement to print an extended warranty notice.
+        -:   75:   k) limits statement to print the processor's limits.
+        -:   76:   l) void functions.
+        -:   77:*/
+        -:   78:
+        -:   79:%token <i_value> ENDOFLINE AND OR NOT
+        -:   80:%token <s_value> STRING NAME NUMBER
+        -:   81:/*     '-', '+' are tokens themselves		*/
+        -:   82:/*     '=', '+=',  '-=', '*=', '/=', '%=', '^=' */
+        -:   83:%token <c_value> ASSIGN_OP
+        -:   84:/*     '==', '<=', '>=', '!=', '<', '>' 	*/
+        -:   85:%token <s_value> REL_OP
+        -:   86:/*     '++', '--' 				*/
+        -:   87:%token <c_value> INCR_DECR
+        -:   88:/*     'define', 'break', 'quit', 'length' 	*/
+        -:   89:%token <i_value> Define    Break    Quit    Length
+        -:   90:/*     'return', 'for', 'if', 'while', 'sqrt', 'else' 	*/
+        -:   91:%token <i_value> Return    For    If    While    Sqrt   Else
+        -:   92:/*     'scale', 'ibase', 'obase', 'auto', 'read', 'random' 	*/
+        -:   93:%token <i_value> Scale Ibase Obase Auto    Read    Random
+        -:   94:/*     'warranty', 'halt', 'last', 'continue', 'print', 'limits'   */
+        -:   95:%token <i_value> Warranty  Halt  Last  Continue  Print  Limits
+        -:   96:/*     'history', 'void' */
+        -:   97:%token <i_value> UNARY_MINUS HistoryVar Void
+        -:   98:
+        -:   99:
+        -:  100:/* Types of all other things. */
+        -:  101:%type <i_value> expression return_expression named_expression opt_expression
+        -:  102:%type <c_value> '+' '-' '*' '/' '%' 
+        -:  103:%type <a_value> opt_parameter_list opt_auto_define_list define_list
+        -:  104:%type <a_value> opt_argument_list argument_list
+        -:  105:%type <i_value> program input_item semicolon_list statement_list
+        -:  106:%type <i_value> statement function statement_or_error required_eol
+        -:  107:%type <i_value> opt_void
+        -:  108:
+        -:  109:/* precedence */
+        -:  110:%left OR
+        -:  111:%left AND
+        -:  112:%nonassoc NOT
+        -:  113:%left REL_OP
+        -:  114:%right ASSIGN_OP
+        -:  115:%left '+' '-'
+        -:  116:%left '*' '/' '%'
+        -:  117:%right '^'
+        -:  118:%nonassoc UNARY_MINUS
+        -:  119:%nonassoc INCR_DECR
+        -:  120:
+        -:  121:%%
+        -:  122:program			: /* empty */
+        -:  123:			    {
+       17:  124:			      $$ = 0;
+       17:  125:			      if (interactive && !quiet)
+branch  0 taken 12% (fallthrough)
+branch  1 taken 88%
+branch  2 taken 100% (fallthrough)
+branch  3 taken 0%
+        -:  126:				{
+        2:  127:				  show_bc_version ();
+call    0 returned 100%
+        2:  128:				  welcome ();
+call    0 returned 100%
+        -:  129:				}
+        -:  130:			    }
+        -:  131:			| program input_item
+        -:  132:			;
+        -:  133:input_item		: semicolon_list ENDOFLINE
+       18:  134:			    { run_code (); }
+call    0 returned 100%
+        -:  135:			| function
+    #####:  136:			    { run_code (); }
+call    0 never executed
+        -:  137:			| error ENDOFLINE
+        -:  138:			    {
+    #####:  139:			      yyerrok;
+    #####:  140:			      init_gen ();
+call    0 never executed
+        -:  141:			    }
+        -:  142:			;
+        -:  143:opt_newline		: /* empty */
+        -:  144:			| ENDOFLINE
+    #####:  145:			    { ct_warn ("newline not allowed"); }
+call    0 never executed
+        -:  146:			;
+        -:  147:semicolon_list		: /* empty */
+        1:  148:			    { $$ = 0; }
+        -:  149:			| statement_or_error
+        -:  150:			| semicolon_list ';' statement_or_error
+        -:  151:			| semicolon_list ';'
+        -:  152:			;
+        -:  153:statement_list		: /* empty */
+    #####:  154:			    { $$ = 0; }
+        -:  155:			| statement_or_error
+        -:  156:			| statement_list ENDOFLINE
+        -:  157:			| statement_list ENDOFLINE statement_or_error
+        -:  158:			| statement_list ';'
+        -:  159:			| statement_list ';' statement
+        -:  160:			;
+        -:  161:statement_or_error	: statement
+        -:  162:  			| error statement
+    #####:  163:			    { $$ = $2; }
+        -:  164:			;
+        -:  165:statement 		: Warranty
+    #####:  166:			    { warranty (""); }
+call    0 never executed
+        -:  167:			| Limits
+    #####:  168:			    { limits (); }
+call    0 never executed
+        -:  169:			| expression
+        -:  170:			    {
+       17:  171:			      if ($1 & EX_COMP)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+    #####:  172:				ct_warn ("comparison in expression");
+call    0 never executed
+       17:  173:			      if ($1 & EX_REG)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+       17:  174:				generate ("W");
+call    0 returned 100%
+        -:  175:			      else 
+    #####:  176:				generate ("p");
+call    0 never executed
+        -:  177:			    }
+        -:  178:			| STRING
+        -:  179:			    {
+    #####:  180:			      $$ = 0;
+    #####:  181:			      generate ("w");
+call    0 never executed
+    #####:  182:			      generate ($1);
+call    0 never executed
+    #####:  183:			      free ($1);
+        -:  184:			    }
+        -:  185:			| Break
+        -:  186:			    {
+    #####:  187:			      if (break_label == 0)
+branch  0 never executed
+branch  1 never executed
+    #####:  188:				yyerror ("Break outside a for/while");
+call    0 never executed
+        -:  189:			      else
+        -:  190:				{
+    #####:  191:				  snprintf (genstr, genlen, "J%1d:",
+call    0 never executed
+        -:  192:				  	    break_label);
+    #####:  193:				  generate (genstr);
+call    0 never executed
+        -:  194:				}
+        -:  195:			    }
+        -:  196:			| Continue
+        -:  197:			    {
+    #####:  198:			      ct_warn ("Continue statement");
+call    0 never executed
+    #####:  199:			      if (continue_label == 0)
+branch  0 never executed
+branch  1 never executed
+    #####:  200:				yyerror ("Continue outside a for");
+call    0 never executed
+        -:  201:			      else
+        -:  202:				{
+    #####:  203:				  snprintf (genstr, genlen, "J%1d:", 
+call    0 never executed
+        -:  204:					    continue_label);
+    #####:  205:				  generate (genstr);
+call    0 never executed
+        -:  206:				}
+        -:  207:			    }
+        -:  208:			| Quit
+       17:  209:			    { bc_exit (0); }
+call    0 returned 0%
+        -:  210:			| Halt
+    #####:  211:			    { generate ("h"); }
+call    0 never executed
+        -:  212:			| Return return_expression
+    #####:  213:			    { generate ("R"); }
+call    0 never executed
+        -:  214:			| For 
+        -:  215:			    {
+    #####:  216:			      $1 = break_label; 
+    #####:  217:			      break_label = next_label++;
+        -:  218:			    }
+        -:  219:			  '(' opt_expression ';'
+        -:  220:			    {
+    #####:  221:			      if ($4 & EX_COMP)
+branch  0 never executed
+branch  1 never executed
+    #####:  222:				ct_warn ("Comparison in first for expression");
+call    0 never executed
+    #####:  223:			      if ($4 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  224:				yyerror ("first expression is void");
+call    0 never executed
+    #####:  225:			      if (!($4 & EX_EMPTY))
+branch  0 never executed
+branch  1 never executed
+    #####:  226:				generate ("p");
+call    0 never executed
+    #####:  227:			      $4 = next_label++;
+    #####:  228:			      snprintf (genstr, genlen, "N%1d:", $4);
+call    0 never executed
+    #####:  229:			      generate (genstr);
+call    0 never executed
+        -:  230:			    }
+        -:  231:			  opt_expression ';'
+        -:  232:			    {
+    #####:  233:			      if ($7 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  234:				yyerror ("second expression is void");
+call    0 never executed
+    #####:  235:			      if ($7 & EX_EMPTY ) generate ("1");
+branch  0 never executed
+branch  1 never executed
+call    2 never executed
+    #####:  236:			      $7 = next_label++;
+    #####:  237:			      snprintf (genstr, genlen, "B%1d:J%1d:", $7,
+call    0 never executed
+        -:  238:			      		break_label);
+    #####:  239:			      generate (genstr);
+call    0 never executed
+    #####:  240:			      $<i_value>$ = continue_label;
+    #####:  241:			      continue_label = next_label++;
+    #####:  242:			      snprintf (genstr, genlen, "N%1d:", 
+call    0 never executed
+        -:  243:			      		continue_label);
+    #####:  244:			      generate (genstr);
+call    0 never executed
+        -:  245:			    }
+        -:  246:			  opt_expression ')'
+        -:  247:			    {
+    #####:  248:			      if ($10 & EX_COMP)
+branch  0 never executed
+branch  1 never executed
+    #####:  249:				ct_warn ("Comparison in third for expression");
+call    0 never executed
+    #####:  250:			      if ($10 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  251:				yyerror ("third expression is void");
+call    0 never executed
+    #####:  252:			      if ($10 & EX_EMPTY)
+branch  0 never executed
+branch  1 never executed
+    #####:  253:				snprintf (genstr, genlen, "J%1d:N%1d:", $4, $7);
+        -:  254:			      else
+    #####:  255:				snprintf (genstr, genlen, "pJ%1d:N%1d:", $4, $7);
+    #####:  256:			      generate (genstr);
+call    0 never executed
+        -:  257:			    }
+        -:  258:			  opt_newline statement
+        -:  259:			    {
+    #####:  260:			      snprintf (genstr, genlen, "J%1d:N%1d:",
+call    0 never executed
+        -:  261:				       continue_label, break_label);
+    #####:  262:			      generate (genstr);
+call    0 never executed
+    #####:  263:			      break_label = $1;
+    #####:  264:			      continue_label = $<i_value>9;
+        -:  265:			    }
+        -:  266:			| If '(' expression ')' 
+        -:  267:			    {
+    #####:  268:			      if ($3 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  269:				yyerror ("void expression");
+call    0 never executed
+    #####:  270:			      $3 = if_label;
+    #####:  271:			      if_label = next_label++;
+    #####:  272:			      snprintf (genstr, genlen, "Z%1d:", if_label);
+call    0 never executed
+    #####:  273:			      generate (genstr);
+call    0 never executed
+        -:  274:			    }
+        -:  275:			  opt_newline statement  opt_else
+        -:  276:			    {
+    #####:  277:			      snprintf (genstr, genlen, "N%1d:", if_label); 
+call    0 never executed
+    #####:  278:			      generate (genstr);
+call    0 never executed
+    #####:  279:			      if_label = $3;
+        -:  280:			    }
+        -:  281:			| While 
+        -:  282:			    {
+    #####:  283:			      $1 = continue_label;
+    #####:  284:			      continue_label = next_label++;
+    #####:  285:			      snprintf (genstr, genlen, "N%1d:", 
+call    0 never executed
+        -:  286:					continue_label);
+    #####:  287:			      generate (genstr);
+call    0 never executed
+        -:  288:			    }
+        -:  289:			'(' expression 
+        -:  290:			    {
+    #####:  291:			      if ($4 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  292:				yyerror ("void expression");
+call    0 never executed
+    #####:  293:			      $4 = break_label; 
+    #####:  294:			      break_label = next_label++;
+    #####:  295:			      snprintf (genstr, genlen, "Z%1d:", break_label);
+call    0 never executed
+    #####:  296:			      generate (genstr);
+call    0 never executed
+        -:  297:			    }
+        -:  298:			')' opt_newline statement
+        -:  299:			    {
+    #####:  300:			      snprintf (genstr, genlen, "J%1d:N%1d:", 
+call    0 never executed
+        -:  301:					continue_label, break_label);
+    #####:  302:			      generate (genstr);
+call    0 never executed
+    #####:  303:			      break_label = $4;
+    #####:  304:			      continue_label = $1;
+        -:  305:			    }
+        -:  306:			| '{' statement_list '}'
+    #####:  307:			    { $$ = 0; }
+        -:  308:			| Print
+    #####:  309:			    {  ct_warn ("print statement"); }
+call    0 never executed
+        -:  310:			  print_list
+        -:  311:			;
+        -:  312:print_list		: print_element
+        -:  313: 			| print_element ',' print_list
+        -:  314:			;
+        -:  315:print_element		: STRING
+        -:  316:			    {
+    #####:  317:			      generate ("O");
+call    0 never executed
+    #####:  318:			      generate ($1);
+call    0 never executed
+    #####:  319:			      free ($1);
+        -:  320:			    }
+        -:  321:			| expression
+        -:  322:			    {
+    #####:  323:			      if ($1 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  324:				yyerror ("void expression in print");
+call    0 never executed
+    #####:  325:			      generate ("P");
+call    0 never executed
+        -:  326:			    }
+        -:  327: 			;
+        -:  328:opt_else		: /* nothing */
+        -:  329:			| Else 
+        -:  330:			    {
+    #####:  331:			      ct_warn ("else clause in if statement");
+call    0 never executed
+    #####:  332:			      $1 = next_label++;
+    #####:  333:			      snprintf (genstr, genlen, "J%d:N%1d:", $1,
+call    0 never executed
+        -:  334:					if_label); 
+    #####:  335:			      generate (genstr);
+call    0 never executed
+    #####:  336:			      if_label = $1;
+        -:  337:			    }
+        -:  338:			  opt_newline statement
+        -:  339:			;
+        -:  340:function 		: Define opt_void NAME '(' opt_parameter_list ')' opt_newline
+        -:  341:     			  '{' required_eol opt_auto_define_list 
+    #####:  342:			    { char *params, *autos;
+        -:  343:			      /* Check auto list against parameter list? */
+    #####:  344:			      check_params ($5,$10);
+call    0 never executed
+    #####:  345:			      params = arg_str ($5);
+call    0 never executed
+    #####:  346:			      autos  = arg_str ($10);
+call    0 never executed
+    #####:  347:			      set_genstr_size (30 + strlen (params)
+    #####:  348:					       + strlen (autos));
+call    0 never executed
+    #####:  349:			      cur_func = lookup($3,FUNCTDEF);
+call    0 never executed
+    #####:  350:			      snprintf (genstr, genlen, "F%d,%s.%s[", cur_func,
+call    0 never executed
+        -:  351:					params, autos); 
+    #####:  352:			      generate (genstr);
+call    0 never executed
+    #####:  353:			      functions[cur_func].f_void = $2;
+    #####:  354:			      free_args ($5);
+call    0 never executed
+    #####:  355:			      free_args ($10);
+call    0 never executed
+    #####:  356:			      $1 = next_label;
+    #####:  357:			      next_label = 1;
+        -:  358:			    }
+        -:  359:			  statement_list /* ENDOFLINE */ '}'
+        -:  360:			    {
+    #####:  361:			      generate ("0R]");
+call    0 never executed
+    #####:  362:			      next_label = $1;
+    #####:  363:			      cur_func = -1;
+        -:  364:			    }
+        -:  365:			;
+        -:  366:opt_void		: /* empty */
+    #####:  367:			    { $$ = 0; }
+        -:  368:			| Void
+        -:  369:			    {
+    #####:  370:			      $$ = 1;
+    #####:  371:			      ct_warn ("void functions");
+call    0 never executed
+        -:  372:			    }
+        -:  373:			;
+        -:  374:opt_parameter_list	: /* empty */ 
+    #####:  375:			    { $$ = NULL; }
+        -:  376:			| define_list
+        -:  377:			;
+        -:  378:opt_auto_define_list 	: /* empty */ 
+    #####:  379:			    { $$ = NULL; }
+        -:  380:			| Auto define_list ENDOFLINE
+    #####:  381:			    { $$ = $2; } 
+        -:  382:			| Auto define_list ';'
+    #####:  383:			    { $$ = $2; } 
+        -:  384:			;
+        -:  385:define_list 		: NAME
+    #####:  386:			    { $$ = nextarg (NULL, lookup ($1,SIMPLE), FALSE);}
+call    0 never executed
+call    1 never executed
+        -:  387:			| NAME '[' ']'
+    #####:  388:			    { $$ = nextarg (NULL, lookup ($1,ARRAY), FALSE); }
+call    0 never executed
+call    1 never executed
+        -:  389:			| '*' NAME '[' ']'
+    #####:  390:			    { $$ = nextarg (NULL, lookup ($2,ARRAY), TRUE);
+call    0 never executed
+call    1 never executed
+    #####:  391:			      ct_warn ("Call by variable arrays");
+call    0 never executed
+        -:  392:			    }
+        -:  393:			| '&' NAME '[' ']'
+    #####:  394:			    { $$ = nextarg (NULL, lookup ($2,ARRAY), TRUE);
+call    0 never executed
+call    1 never executed
+    #####:  395:			      ct_warn ("Call by variable arrays");
+call    0 never executed
+        -:  396:			    }
+        -:  397:			| define_list ',' NAME
+    #####:  398:			    { $$ = nextarg ($1, lookup ($3,SIMPLE), FALSE); }
+call    0 never executed
+call    1 never executed
+        -:  399:			| define_list ',' NAME '[' ']'
+    #####:  400:			    { $$ = nextarg ($1, lookup ($3,ARRAY), FALSE); }
+call    0 never executed
+call    1 never executed
+        -:  401:			| define_list ',' '*' NAME '[' ']'
+    #####:  402:			    { $$ = nextarg ($1, lookup ($4,ARRAY), TRUE);
+call    0 never executed
+call    1 never executed
+    #####:  403:			      ct_warn ("Call by variable arrays");
+call    0 never executed
+        -:  404:			    }
+        -:  405:			| define_list ',' '&' NAME '[' ']'
+    #####:  406:			    { $$ = nextarg ($1, lookup ($4,ARRAY), TRUE);
+call    0 never executed
+call    1 never executed
+    #####:  407:			      ct_warn ("Call by variable arrays");
+call    0 never executed
+        -:  408:			    }
+        -:  409:			;
+        -:  410:opt_argument_list	: /* empty */
+    #####:  411:			    { $$ = NULL; }
+        -:  412:			| argument_list
+        -:  413:			;
+        -:  414:argument_list 		: expression
+        -:  415:			    {
+    #####:  416:			      if ($1 & EX_COMP)
+branch  0 never executed
+branch  1 never executed
+    #####:  417:				ct_warn ("comparison in argument");
+call    0 never executed
+    #####:  418:			      if ($1 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  419:				yyerror ("void argument");
+call    0 never executed
+    #####:  420:			      $$ = nextarg (NULL,0,FALSE);
+call    0 never executed
+        -:  421:			    }
+        -:  422:			| NAME '[' ']'
+        -:  423:			    {
+    #####:  424:			      snprintf (genstr, genlen, "K%d:",
+call    0 never executed
+    #####:  425:					-lookup ($1,ARRAY));
+call    0 never executed
+    #####:  426:			      generate (genstr);
+call    0 never executed
+    #####:  427:			      $$ = nextarg (NULL,1,FALSE);
+call    0 never executed
+        -:  428:			    }
+        -:  429:			| argument_list ',' expression
+        -:  430:			    {
+    #####:  431:			      if ($3 & EX_COMP)
+branch  0 never executed
+branch  1 never executed
+    #####:  432:				ct_warn ("comparison in argument");
+call    0 never executed
+    #####:  433:			      if ($3 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  434:				yyerror ("void argument");
+call    0 never executed
+    #####:  435:			      $$ = nextarg ($1,0,FALSE);
+call    0 never executed
+        -:  436:			    }
+        -:  437:			| argument_list ',' NAME '[' ']'
+        -:  438:			    {
+    #####:  439:			      snprintf (genstr, genlen, "K%d:", 
+call    0 never executed
+    #####:  440:					-lookup ($3,ARRAY));
+call    0 never executed
+    #####:  441:			      generate (genstr);
+call    0 never executed
+    #####:  442:			      $$ = nextarg ($1,1,FALSE);
+call    0 never executed
+        -:  443:			    }
+        -:  444:			;
+        -:  445:
+        -:  446:/* Expression lval meanings!  (Bits mean something!)  (See defines above)
+        -:  447: *  0 => Top op is assignment.
+        -:  448: *  1 => Top op is not assignment.
+        -:  449: *  2 => Comparison is somewhere in expression.
+        -:  450: *  4 => Expression is in parenthesis.
+        -:  451: *  8 => Expression is void!
+        -:  452: * 16 => Empty optional expression.
+        -:  453: */
+        -:  454:
+        -:  455:opt_expression 		: /* empty */
+        -:  456:			    {
+    #####:  457:			      $$ = EX_EMPTY;
+    #####:  458:			      ct_warn ("Missing expression in for statement");
+call    0 never executed
+        -:  459:			    }
+        -:  460:			| expression
+        -:  461:			;
+        -:  462:return_expression	: /* empty */
+        -:  463:			    {
+    #####:  464:			      $$ = 0;
+    #####:  465:			      generate ("0");
+call    0 never executed
+    #####:  466:			      if (cur_func == -1)
+branch  0 never executed
+branch  1 never executed
+    #####:  467:				yyerror("Return outside of a function.");
+call    0 never executed
+        -:  468:			    }
+        -:  469:			| expression
+        -:  470:			    {
+    #####:  471:			      if ($1 & EX_COMP)
+branch  0 never executed
+branch  1 never executed
+    #####:  472:				ct_warn ("comparison in return expression");
+call    0 never executed
+    #####:  473:			      if (!($1 & EX_PAREN))
+branch  0 never executed
+branch  1 never executed
+    #####:  474:				ct_warn ("return expression requires parenthesis");
+call    0 never executed
+    #####:  475:			      if ($1 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  476:				yyerror("return requires non-void expression");
+call    0 never executed
+    #####:  477:			      if (cur_func == -1)
+branch  0 never executed
+branch  1 never executed
+    #####:  478:				yyerror("Return outside of a function.");
+call    0 never executed
+    #####:  479:			      else if (functions[cur_func].f_void)
+branch  0 never executed
+branch  1 never executed
+    #####:  480:				yyerror("Return expression in a void function.");
+call    0 never executed
+        -:  481:			    }
+        -:  482:			;
+        -:  483:expression		:  named_expression ASSIGN_OP 
+        -:  484:			    {
+    #####:  485:			      if ($2 != '=')
+branch  0 never executed
+branch  1 never executed
+        -:  486:				{
+    #####:  487:				  if ($1 < 0)
+branch  0 never executed
+branch  1 never executed
+    #####:  488:				    snprintf (genstr, genlen, "DL%d:", -$1);
+        -:  489:				  else
+    #####:  490:				    snprintf (genstr, genlen, "l%d:", $1);
+    #####:  491:				  generate (genstr);
+call    0 never executed
+        -:  492:				}
+        -:  493:			    }
+        -:  494:			  expression
+        -:  495:			    {
+    #####:  496:			      if ($4 & EX_ASSGN)
+        -:  497:				ct_warn("comparison in assignment");
+    #####:  498:			      if ($4 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  499:				yyerror("Assignment of a void expression");
+call    0 never executed
+    #####:  500:			      if ($2 != '=')
+branch  0 never executed
+branch  1 never executed
+        -:  501:				{
+    #####:  502:				  snprintf (genstr, genlen, "%c", $2);
+call    0 never executed
+    #####:  503:				  generate (genstr);
+call    0 never executed
+        -:  504:				}
+    #####:  505:			      if ($1 < 0)
+branch  0 never executed
+branch  1 never executed
+    #####:  506:				snprintf (genstr, genlen, "S%d:", -$1);
+        -:  507:			      else
+    #####:  508:				snprintf (genstr, genlen, "s%d:", $1);
+    #####:  509:			      generate (genstr);
+call    0 never executed
+    #####:  510:			      $$ = EX_ASSGN;
+        -:  511:			    }
+        -:  512:			| expression AND 
+        -:  513:			    {
+    #####:  514:			      ct_warn("&& operator");
+call    0 never executed
+    #####:  515:			      $2 = next_label++;
+    #####:  516:			      snprintf (genstr, genlen, "DZ%d:p", $2);
+call    0 never executed
+    #####:  517:			      generate (genstr);
+call    0 never executed
+        -:  518:			    }
+        -:  519:			  expression
+        -:  520:			    {
+    #####:  521:			      if (($1 & EX_VOID) || ($4 & EX_VOID))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+    #####:  522:				yyerror ("void expression with &&");
+call    0 never executed
+    #####:  523:			      snprintf (genstr, genlen, "DZ%d:p1N%d:", $2, $2);
+call    0 never executed
+    #####:  524:			      generate (genstr);
+call    0 never executed
+    #####:  525:			      $$ = ($1 | $4) & ~EX_PAREN;
+        -:  526:			    }
+        -:  527:			| expression OR
+        -:  528:			    {
+    #####:  529:			      ct_warn("|| operator");
+call    0 never executed
+    #####:  530:			      $2 = next_label++;
+    #####:  531:			      snprintf (genstr, genlen, "B%d:", $2);
+call    0 never executed
+    #####:  532:			      generate (genstr);
+call    0 never executed
+        -:  533:			    }
+        -:  534:			  expression
+        -:  535: 			    {
+    #####:  536:			      int tmplab;
+    #####:  537:			      if (($1 & EX_VOID) || ($4 & EX_VOID))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+    #####:  538:				yyerror ("void expression with ||");
+call    0 never executed
+    #####:  539:			      tmplab = next_label++;
+    #####:  540:			      snprintf (genstr, genlen, "B%d:0J%d:N%d:1N%d:",
+call    0 never executed
+        -:  541:				       $2, tmplab, $2, tmplab);
+    #####:  542:			      generate (genstr);
+call    0 never executed
+    #####:  543:			      $$ = ($1 | $4) & ~EX_PAREN;
+        -:  544:			    }
+        -:  545:			| NOT expression
+        -:  546:			    {
+    #####:  547:			      if ($2 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  548:				yyerror ("void expression with !");
+call    0 never executed
+    #####:  549:			      $$ = $2 & ~EX_PAREN;
+    #####:  550:			      ct_warn("! operator");
+call    0 never executed
+    #####:  551:			      generate ("!");
+call    0 never executed
+        -:  552:			    }
+        -:  553:			| expression REL_OP expression
+        -:  554:			    {
+    #####:  555:			      if (($1 & EX_VOID) || ($3 & EX_VOID))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+    #####:  556:				yyerror ("void expression with comparison");
+call    0 never executed
+    #####:  557:			      $$ = EX_REG | EX_COMP;
+    #####:  558:			      switch (*($2))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+branch  4 never executed
+        -:  559:				{
+    #####:  560:				case '=':
+    #####:  561:				  generate ("=");
+    #####:  562:				  break;
+call    0 never executed
+        -:  563:
+    #####:  564:				case '!':
+    #####:  565:				  generate ("#");
+    #####:  566:				  break;
+call    0 never executed
+        -:  567:
+    #####:  568:				case '<':
+    #####:  569:				  if ($2[1] == '=')
+branch  0 never executed
+branch  1 never executed
+    #####:  570:				    generate ("{");
+call    0 never executed
+        -:  571:				  else
+    #####:  572:				    generate ("<");
+call    0 never executed
+        -:  573:				  break;
+        -:  574:
+    #####:  575:				case '>':
+    #####:  576:				  if ($2[1] == '=')
+branch  0 never executed
+branch  1 never executed
+    #####:  577:				    generate ("}");
+call    0 never executed
+        -:  578:				  else
+    #####:  579:				    generate (">");
+call    0 never executed
+        -:  580:				  break;
+        -:  581:				}
+    #####:  582:                              free($2);
+        -:  583:			    }
+        -:  584:			| expression '+' expression
+        -:  585:			    {
+       16:  586:			      if (($1 & EX_VOID) || ($3 & EX_VOID))
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+branch  2 taken 0% (fallthrough)
+branch  3 taken 100%
+    #####:  587:				yyerror ("void expression with +");
+call    0 never executed
+       16:  588:			      generate ("+");
+call    0 returned 100%
+       16:  589:			      $$ = ($1 | $3) & ~EX_PAREN;
+        -:  590:			    }
+        -:  591:			| expression '-' expression
+        -:  592:			    {
+       15:  593:			      if (($1 & EX_VOID) || ($3 & EX_VOID))
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+branch  2 taken 0% (fallthrough)
+branch  3 taken 100%
+    #####:  594:				yyerror ("void expression with -");
+call    0 never executed
+       15:  595:			      generate ("-");
+call    0 returned 100%
+       15:  596:			      $$ = ($1 | $3) & ~EX_PAREN;
+        -:  597:			    }
+        -:  598:			| expression '*' expression
+        -:  599:			    {
+    #####:  600:			      if (($1 & EX_VOID) || ($3 & EX_VOID))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+    #####:  601:				yyerror ("void expression with *");
+call    0 never executed
+    #####:  602:			      generate ("*");
+call    0 never executed
+    #####:  603:			      $$ = ($1 | $3) & ~EX_PAREN;
+        -:  604:			    }
+        -:  605:			| expression '/' expression
+        -:  606:			    {
+       15:  607:			      if (($1 & EX_VOID) || ($3 & EX_VOID))
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+branch  2 taken 0% (fallthrough)
+branch  3 taken 100%
+    #####:  608:				yyerror ("void expression with /");
+call    0 never executed
+       15:  609:			      generate ("/");
+call    0 returned 100%
+       15:  610:			      $$ = ($1 | $3) & ~EX_PAREN;
+        -:  611:			    }
+        -:  612:			| expression '%' expression
+        -:  613:			    {
+    #####:  614:			      if (($1 & EX_VOID) || ($3 & EX_VOID))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+    #####:  615:				yyerror ("void expression with %");
+call    0 never executed
+    #####:  616:			      generate ("%");
+call    0 never executed
+    #####:  617:			      $$ = ($1 | $3) & ~EX_PAREN;
+        -:  618:			    }
+        -:  619:			| expression '^' expression
+        -:  620:			    {
+    #####:  621:			      if (($1 & EX_VOID) || ($3 & EX_VOID))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+    #####:  622:				yyerror ("void expression with ^");
+call    0 never executed
+    #####:  623:			      generate ("^");
+call    0 never executed
+    #####:  624:			      $$ = ($1 | $3) & ~EX_PAREN;
+        -:  625:			    }
+        -:  626:			| '-' expression  %prec UNARY_MINUS
+        -:  627:			    {
+    #####:  628:			      if ($2 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  629:				yyerror ("void expression with unary -");
+call    0 never executed
+    #####:  630:			      generate ("n");
+call    0 never executed
+    #####:  631:			      $$ = $2 & ~EX_PAREN;
+        -:  632:			    }
+        -:  633:			| named_expression
+        -:  634:			    {
+    #####:  635:			      $$ = EX_REG;
+    #####:  636:			      if ($1 < 0)
+branch  0 never executed
+branch  1 never executed
+    #####:  637:				snprintf (genstr, genlen, "L%d:", -$1);
+        -:  638:			      else
+    #####:  639:				snprintf (genstr, genlen, "l%d:", $1);
+    #####:  640:			      generate (genstr);
+call    0 never executed
+        -:  641:			    }
+        -:  642:			| NUMBER
+        -:  643:			    {
+       63:  644:			      int len = strlen($1);
+       63:  645:			      $$ = EX_REG;
+       63:  646:			      if (len == 1 && *$1 == '0')
+branch  0 taken 52% (fallthrough)
+branch  1 taken 48%
+branch  2 taken 0% (fallthrough)
+branch  3 taken 100%
+    #####:  647:				generate ("0");
+call    0 never executed
+       63:  648:			      else if (len == 1 && *$1 == '1')
+branch  0 taken 52% (fallthrough)
+branch  1 taken 48%
+branch  2 taken 9% (fallthrough)
+branch  3 taken 91%
+        3:  649:				generate ("1");
+call    0 returned 100%
+        -:  650:			      else
+        -:  651:				{
+       60:  652:				  generate ("K");
+call    0 returned 100%
+       60:  653:				  generate ($1);
+call    0 returned 100%
+       60:  654:				  generate (":");
+call    0 returned 100%
+        -:  655:				}
+       63:  656:			      free ($1);
+        -:  657:			    }
+        -:  658:			| '(' expression ')'
+        -:  659:			    { 
+    #####:  660:			      if ($2 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  661:				yyerror ("void expression in parenthesis");
+call    0 never executed
+    #####:  662:			      $$ = $2 | EX_REG | EX_PAREN;
+        -:  663:			    }
+        -:  664:			| NAME '(' opt_argument_list ')'
+    #####:  665:			    { int fn;
+    #####:  666:			      fn = lookup ($1,FUNCT);
+call    0 never executed
+    #####:  667:			      if (functions[fn].f_void)
+branch  0 never executed
+branch  1 never executed
+    #####:  668:				$$ = EX_VOID;
+        -:  669:			      else
+    #####:  670:				$$ = EX_REG;
+    #####:  671:			      if ($3 != NULL)
+branch  0 never executed
+branch  1 never executed
+    #####:  672:				{ char *params = call_str ($3);
+call    0 never executed
+    #####:  673:				  set_genstr_size (20 + strlen (params));
+call    0 never executed
+    #####:  674:				  snprintf (genstr, genlen, "C%d,%s:", fn,
+call    0 never executed
+        -:  675:				  	    params);
+    #####:  676:				  free_args ($3);
+call    0 never executed
+        -:  677:				}
+        -:  678:			      else
+        -:  679:				{
+    #####:  680:				  snprintf (genstr, genlen, "C%d:", fn);
+        -:  681:				}
+    #####:  682:			      generate (genstr);
+call    0 never executed
+        -:  683:			    }
+        -:  684:			| INCR_DECR named_expression
+        -:  685:			    {
+    #####:  686:			      $$ = EX_REG;
+    #####:  687:			      if ($2 < 0)
+branch  0 never executed
+branch  1 never executed
+        -:  688:				{
+    #####:  689:				  if ($1 == '+')
+branch  0 never executed
+branch  1 never executed
+    #####:  690:				    snprintf (genstr, genlen, "DA%d:L%d:", -$2, -$2);
+        -:  691:				  else
+    #####:  692:				    snprintf (genstr, genlen, "DM%d:L%d:", -$2, -$2);
+        -:  693:				}
+        -:  694:			      else
+        -:  695:				{
+    #####:  696:				  if ($1 == '+')
+branch  0 never executed
+branch  1 never executed
+    #####:  697:				    snprintf (genstr, genlen, "i%d:l%d:", $2, $2);
+        -:  698:				  else
+    #####:  699:				    snprintf (genstr, genlen, "d%d:l%d:", $2, $2);
+        -:  700:				}
+    #####:  701:			      generate (genstr);
+call    0 never executed
+        -:  702:			    }
+        -:  703:			| named_expression INCR_DECR
+        -:  704:			    {
+    #####:  705:			      $$ = EX_REG;
+    #####:  706:			      if ($1 < 0)
+branch  0 never executed
+branch  1 never executed
+        -:  707:				{
+    #####:  708:				  snprintf (genstr, genlen, "DL%d:x", -$1);
+call    0 never executed
+    #####:  709:				  generate (genstr); 
+call    0 never executed
+    #####:  710:				  if ($2 == '+')
+branch  0 never executed
+branch  1 never executed
+    #####:  711:				    snprintf (genstr, genlen, "A%d:", -$1);
+        -:  712:				  else
+    #####:  713:				      snprintf (genstr, genlen, "M%d:", -$1);
+        -:  714:				}
+        -:  715:			      else
+        -:  716:				{
+    #####:  717:				  snprintf (genstr, genlen, "l%d:", $1);
+call    0 never executed
+    #####:  718:				  generate (genstr);
+call    0 never executed
+    #####:  719:				  if ($2 == '+')
+branch  0 never executed
+branch  1 never executed
+    #####:  720:				    snprintf (genstr, genlen, "i%d:", $1);
+        -:  721:				  else
+    #####:  722:				    snprintf (genstr, genlen, "d%d:", $1);
+        -:  723:				}
+    #####:  724:			      generate (genstr);
+call    0 never executed
+        -:  725:			    }
+        -:  726:			| Length '(' expression ')'
+        -:  727:			    {
+    #####:  728:			      if ($3 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  729:				yyerror ("void expression in length()");
+call    0 never executed
+    #####:  730:			      generate ("cL");
+call    0 never executed
+    #####:  731:			      $$ = EX_REG;
+        -:  732:			    }
+        -:  733:			| Sqrt '(' expression ')'
+        -:  734:			    {
+    #####:  735:			      if ($3 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  736:				yyerror ("void expression in sqrt()");
+call    0 never executed
+    #####:  737:			      generate ("cR");
+call    0 never executed
+    #####:  738:			      $$ = EX_REG;
+        -:  739:			    }
+        -:  740:			| Scale '(' expression ')'
+        -:  741:			    {
+    #####:  742:			      if ($3 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  743:				yyerror ("void expression in scale()");
+call    0 never executed
+    #####:  744:			      generate ("cS");
+call    0 never executed
+    #####:  745:			      $$ = EX_REG;
+        -:  746:			    }
+        -:  747:			| Read '(' ')'
+        -:  748:			    {
+    #####:  749:			      ct_warn ("read function");
+call    0 never executed
+    #####:  750:			      generate ("cI");
+call    0 never executed
+    #####:  751:			      $$ = EX_REG;
+        -:  752:			    }
+        -:  753:			| Random '(' ')'
+        -:  754:			    {
+    #####:  755:			      ct_warn ("random function");
+call    0 never executed
+    #####:  756:			      generate ("cX");
+call    0 never executed
+    #####:  757:			      $$ = EX_REG;
+        -:  758:			    }
+        -:  759:			;
+        -:  760:named_expression	: NAME
+    #####:  761:			    { $$ = lookup($1,SIMPLE); }
+call    0 never executed
+        -:  762:			| NAME '[' expression ']'
+        -:  763:			    {
+    #####:  764:			      if ($3 & EX_VOID)
+branch  0 never executed
+branch  1 never executed
+    #####:  765:				yyerror("void expression as subscript");
+call    0 never executed
+    #####:  766:			      if ($3 & EX_COMP)
+branch  0 never executed
+branch  1 never executed
+    #####:  767:				ct_warn("comparison in subscript");
+call    0 never executed
+    #####:  768:			      $$ = lookup($1,ARRAY);
+call    0 never executed
+        -:  769:			    }
+        -:  770:			| Ibase
+    #####:  771:			    { $$ = 0; }
+        -:  772:			| Obase
+    #####:  773:			    { $$ = 1; }
+        -:  774:			| Scale
+    #####:  775:			    { $$ = 2; }
+        -:  776:			| HistoryVar
+    #####:  777:			    { $$ = 3;
+    #####:  778:			      ct_warn ("History variable");
+call    0 never executed
+        -:  779:			    }
+        -:  780:			| Last
+    #####:  781:			    { $$ = 4;
+    #####:  782:			      ct_warn ("Last variable");
+call    0 never executed
+        -:  783:			    }
+        -:  784:			;
+        -:  785:
+        -:  786:
+    #####:  787:required_eol		: { ct_warn ("End of line required"); }
+call    0 never executed
+        -:  788:			| ENDOFLINE
+        -:  789:			| required_eol ENDOFLINE
+    #####:  790:			  { ct_warn ("Too many end of lines"); }
+call    0 never executed
+        -:  791:			;
+        -:  792:
+        -:  793:%%

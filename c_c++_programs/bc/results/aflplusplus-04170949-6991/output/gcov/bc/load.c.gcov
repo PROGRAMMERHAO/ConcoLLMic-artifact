@@ -1,0 +1,484 @@
+        -:    0:Source:load.c
+        -:    0:Graph:./load.gcno
+        -:    0:Data:./load.gcda
+        -:    0:Runs:2083
+        -:    1:/*  This file is part of GNU bc.
+        -:    2:
+        -:    3:    Copyright (C) 1991-1994, 1997, 2006, 2008, 2012-2017 Free Software Foundation, Inc.
+        -:    4:
+        -:    5:    This program is free software; you can redistribute it and/or modify
+        -:    6:    it under the terms of the GNU General Public License as published by
+        -:    7:    the Free Software Foundation; either version 3 of the License , or
+        -:    8:    (at your option) any later version.
+        -:    9:
+        -:   10:    This program is distributed in the hope that it will be useful,
+        -:   11:    but WITHOUT ANY WARRANTY; without even the implied warranty of
+        -:   12:    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        -:   13:    GNU General Public License for more details.
+        -:   14:
+        -:   15:    You should have received a copy of the GNU General Public License
+        -:   16:    along with this program; see the file COPYING.  If not, see
+        -:   17:    <http://www.gnu.org/licenses>.
+        -:   18:
+        -:   19:    You may contact the author by:
+        -:   20:       e-mail:  philnelson@acm.org
+        -:   21:      us-mail:  Philip A. Nelson
+        -:   22:                Computer Science Department, 9062
+        -:   23:                Western Washington University
+        -:   24:                Bellingham, WA 98226-9062
+        -:   25:       
+        -:   26:*************************************************************************/
+        -:   27:
+        -:   28:/* load.c:  This code "loads" code into the code segments. */
+        -:   29:
+        -:   30:#include "bcdefs.h"
+        -:   31:#include "proto.h"
+        -:   32:
+        -:   33:/* Load variables. */
+        -:   34:
+        -:   35:program_counter load_adr;
+        -:   36:char load_str;
+        -:   37:char load_const;
+        -:   38:
+        -:   39:/* Initialize the load sequence. */
+        -:   40:void
+function init_load called 186340 returned 100% blocks executed 100%
+   186340:   41:init_load (void)
+        -:   42:{
+   186340:   43:  clear_func(0);
+call    0 returned 100%
+   186340:   44:  load_adr.pc_func = 0;
+   186340:   45:  load_adr.pc_addr = 0;
+   186340:   46:  load_str = FALSE;
+   186340:   47:  load_const = FALSE;
+   186340:   48:}
+        -:   49:
+        -:   50:/* addbyte adds one BYTE to the current code segment. */
+        -:   51:void
+function addbyte called 1671240 returned 100% blocks executed 100%
+  1671240:   52:addbyte (unsigned char thebyte)
+        -:   53:{
+  1671240:   54:  unsigned long prog_addr;
+  1671240:   55:  bc_function *f;
+  1671240:   56:  char *new_body;
+        -:   57:
+        -:   58:  /* If there was an error, don't continue. */
+  1671240:   59:  if (had_error) return;
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -:   60:
+        -:   61:  /* Calculate the segment and offset. */
+  1671240:   62:  prog_addr = load_adr.pc_addr++;
+  1671240:   63:  f = &functions[load_adr.pc_func];
+        -:   64:
+  1671240:   65:  if (prog_addr >= f->f_body_size)
+branch  0 taken 1% (fallthrough)
+branch  1 taken 100%
+        -:   66:    {
+       35:   67:      f->f_body_size *= 2;
+       35:   68:      new_body = bc_malloc (f->f_body_size);
+call    0 returned 100%
+       35:   69:      memcpy(new_body, f->f_body, f->f_body_size/2);
+       35:   70:      free (f->f_body);
+       35:   71:      f->f_body = new_body;
+        -:   72:    }
+        -:   73:
+        -:   74:  /* Store the thebyte. */
+  1671240:   75:  f->f_body[prog_addr] = (char) (thebyte & 0xff);
+  1671240:   76:  f->f_code_size++;
+        -:   77:}
+        -:   78:
+        -:   79:
+        -:   80:/* Define a label LAB to be the current program counter. */
+        -:   81:
+        -:   82:void
+function def_label called 22436 returned 100% blocks executed 60%
+    22436:   83:def_label (unsigned long lab)
+        -:   84:{
+    22436:   85:  bc_label_group *temp;
+    22436:   86:  unsigned long group, offset, func;
+        -:   87:    
+        -:   88:  /* Get things ready. */
+    22436:   89:  group = lab >> BC_LABEL_LOG;
+    22436:   90:  offset = lab % BC_LABEL_GROUP;
+    22436:   91:  func = load_adr.pc_func;
+        -:   92:  
+        -:   93:  /* Make sure there is at least one label group. */
+    22436:   94:  if (functions[func].f_label == NULL)
+branch  0 taken 57% (fallthrough)
+branch  1 taken 43%
+        -:   95:    {
+    12867:   96:      functions[func].f_label = bc_malloc (sizeof(bc_label_group));
+call    0 returned 100%
+    12867:   97:      functions[func].f_label->l_next = NULL;
+        -:   98:    }
+        -:   99:
+        -:  100:  /* Add the label group. */
+    22436:  101:  temp = functions[func].f_label;
+    22436:  102:  while (group > 0)
+branch  0 taken 0%
+branch  1 taken 100% (fallthrough)
+        -:  103:    {
+    #####:  104:      if (temp->l_next == NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  105:	{
+    #####:  106:	  temp->l_next = bc_malloc (sizeof(bc_label_group));
+call    0 never executed
+    #####:  107:	  temp->l_next->l_next = NULL;
+        -:  108:	}
+    #####:  109:      temp = temp->l_next;
+    #####:  110:      group --;
+        -:  111:    }
+        -:  112:
+        -:  113:  /* Define it! */
+    22436:  114:  temp->l_adrs [offset] = load_adr.pc_addr;
+    22436:  115:}
+        -:  116:
+        -:  117:/* Several instructions have integers in the code.  They
+        -:  118:   are all known to be legal longs.  So, no error code
+        -:  119:   is added.  STR is the pointer to the load string and
+        -:  120:   must be moved to the last non-digit character. */
+        -:  121:
+        -:  122:long
+function long_val called 253451 returned 100% blocks executed 78%
+   253451:  123:long_val (const char **str)
+   253451:  124:{ int  val = 0;
+   253451:  125:  char neg = FALSE;
+        -:  126:
+   253451:  127:  if (**str == '-')
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  128:    {
+    #####:  129:      neg = TRUE;
+    #####:  130:      (*str)++;
+        -:  131:    }
+   580069:  132:  while (isdigit((int)(**str))) 
+branch  0 taken 56%
+branch  1 taken 44% (fallthrough)
+   326618:  133:    val = val*10 + *(*str)++ - '0';
+        -:  134:
+   253451:  135:  if (neg)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+    #####:  136:    return -val;
+        -:  137:  else
+   253451:  138:    return val;
+        -:  139:}
+        -:  140:
+        -:  141:
+        -:  142:/* load_code loads the CODE into the machine. */
+        -:  143:
+        -:  144:void
+function load_code called 1744101 returned 100% blocks executed 56%
+  1744101:  145:load_code (const char *code)
+        -:  146:{
+  1744101:  147:  const char *str;
+  1744101:  148:  unsigned long  ap_name;	/* auto or parameter name. */
+  1744101:  149:  unsigned long  label_no;
+  1744101:  150:  unsigned long  vaf_name;	/* variable, array or function number. */
+  1744101:  151:  unsigned long  func;
+  1744101:  152:  static program_counter save_adr;
+        -:  153:
+        -:  154:  /* Initialize. */
+  1744101:  155:  str = code;
+        -:  156:   
+        -:  157:  /* Scan the code. */
+  3161507:  158:  while (*str != 0)
+branch  0 taken 69%
+branch  1 taken 31% (fallthrough)
+        -:  159:    {
+        -:  160:      /* If there was an error, don't continue. */
+  2193455:  161:      if (had_error) return;
+branch  0 taken 35% (fallthrough)
+branch  1 taken 65%
+        -:  162:
+  1417406:  163:      if (load_str)
+branch  0 taken 2% (fallthrough)
+branch  1 taken 98%
+        -:  164:	{
+    27131:  165:	  if (*str == '"') load_str = FALSE;
+branch  0 taken 2% (fallthrough)
+branch  1 taken 98%
+    27131:  166:	  addbyte (*str++);
+call    0 returned 100%
+        -:  167:	}
+        -:  168:      else
+  1390275:  169:	if (load_const)
+branch  0 taken 45% (fallthrough)
+branch  1 taken 55%
+        -:  170:	  {
+   621308:  171:	    if (*str == '\n') 
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+    #####:  172:	      str++;
+        -:  173:	    else
+        -:  174:	      {
+   621308:  175:		if (*str == ':')
+branch  0 taken 23% (fallthrough)
+branch  1 taken 77%
+        -:  176:		  {
+   141495:  177:		    load_const = FALSE;
+   141495:  178:		    addbyte (*str++);
+call    0 returned 100%
+        -:  179:		  }
+        -:  180:		else
+   479813:  181:		  if (*str == '.')
+branch  0 taken 3% (fallthrough)
+branch  1 taken 97%
+    14735:  182:		    addbyte (*str++);
+call    0 returned 100%
+        -:  183:		  else
+        -:  184:                    {
+   465078:  185:		      if (*str > 'F' && (warn_not_std || std_only))
+branch  0 taken 10% (fallthrough)
+branch  1 taken 90%
+branch  2 taken 100% (fallthrough)
+branch  3 taken 0%
+branch  4 taken 0% (fallthrough)
+branch  5 taken 100%
+        -:  186:                        {
+    #####:  187:                          if (std_only)
+branch  0 never executed
+branch  1 never executed
+    #####:  188:                            yyerror ("Error in numeric constant");
+call    0 never executed
+        -:  189:                          else
+    #####:  190:                            ct_warn ("Non-standard base in numeric constant");
+call    0 never executed
+        -:  191:                        } 
+   465078:  192:		      if (*str >= 'A')
+branch  0 taken 13% (fallthrough)
+branch  1 taken 87%
+    58321:  193:		        addbyte (*str++ + 10 - 'A');
+call    0 returned 100%
+        -:  194:		      else
+   406757:  195:		        addbyte (*str++ - '0');
+call    0 returned 100%
+        -:  196:                    }
+        -:  197:	      }
+        -:  198:	  }
+        -:  199:	else
+        -:  200:	  {
+   768967:  201:	    switch (*str)
+branch  0 taken 1%
+branch  1 taken 3%
+branch  2 taken 5%
+branch  3 taken 0%
+branch  4 taken 0%
+branch  5 taken 1%
+branch  6 taken 0%
+branch  7 taken 18%
+branch  8 taken 25%
+branch  9 taken 0%
+branch 10 taken 49%
+branch 11 taken 0%
+        -:  202:	      {
+        -:  203:
+      494:  204:	      case '"':	/* Starts a string. */
+      494:  205:		load_str = TRUE;
+      494:  206:		break;
+        -:  207:
+    22436:  208:	      case 'N': /* A label */
+    22436:  209:		str++;
+    22436:  210:		label_no = long_val (&str);
+call    0 returned 100%
+    22436:  211:		def_label (label_no);
+    22436:  212:		break;
+call    0 returned 100%
+        -:  213:
+    38099:  214:	      case 'B':  /* Branch to label. */
+        -:  215:	      case 'J':  /* Jump to label. */
+        -:  216:	      case 'Z':  /* Branch Zero to label. */
+    38099:  217:		addbyte(*str++);
+call    0 returned 100%
+    38099:  218:		label_no = long_val (&str);
+call    0 returned 100%
+    38099:  219:		if (label_no > 65535L)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  220:		  {  /* Better message? */
+    #####:  221:		    fprintf (stderr,"Program too big.\n");
+call    0 never executed
+    #####:  222:		    bc_exit(1);
+call    0 never executed
+        -:  223:		  }
+    38099:  224:		addbyte ( (char) (label_no & 0xFF));
+call    0 returned 100%
+    38099:  225:		addbyte ( (char) (label_no >> 8));
+    38099:  226:		break;
+call    0 returned 100%
+        -:  227:
+    #####:  228:	      case 'F':  /* A function, get the name and initialize it. */
+    #####:  229:		str++;
+    #####:  230:		func = long_val (&str);
+call    0 never executed
+    #####:  231:		clear_func (func);
+        -:  232:#if DEBUG > 2
+        -:  233:		printf ("Loading function number %d\n", func);
+        -:  234:#endif
+        -:  235:		/* get the parameters */
+    #####:  236:		while (*str++ != '.')
+call    0 never executed
+branch  1 never executed
+branch  2 never executed
+        -:  237:		  {
+    #####:  238:		    if (*str == '.')
+branch  0 never executed
+branch  1 never executed
+        -:  239:		      {
+    #####:  240:			str++;
+    #####:  241:			break;
+        -:  242:		      }
+    #####:  243:		    if (*str == '*')
+branch  0 never executed
+branch  1 never executed
+        -:  244:		      {
+    #####:  245:			str++;
+    #####:  246:			ap_name = long_val (&str);
+call    0 never executed
+        -:  247:#if DEBUG > 2
+        -:  248:			printf ("var parameter number %d\n", ap_name);
+        -:  249:#endif
+    #####:  250:			functions[(int)func].f_params = 
+    #####:  251:			  nextarg (functions[(int)func].f_params, ap_name,
+call    0 never executed
+        -:  252:				   TRUE);
+        -:  253:		      }
+        -:  254:		    else
+        -:  255:		      {
+    #####:  256:			ap_name = long_val (&str);
+call    0 never executed
+        -:  257:#if DEBUG > 2
+        -:  258:			printf ("parameter number %d\n", ap_name);
+        -:  259:#endif
+    #####:  260:			functions[(int)func].f_params = 
+    #####:  261:			  nextarg (functions[(int)func].f_params, ap_name,
+call    0 never executed
+        -:  262:				   FALSE);
+        -:  263:		      }
+        -:  264:		  }
+        -:  265:
+        -:  266:		/* get the auto vars */
+    #####:  267:		while (*str != '[')
+branch  0 never executed
+branch  1 never executed
+        -:  268:		  {
+    #####:  269:		    if (*str == ',') str++;
+branch  0 never executed
+branch  1 never executed
+    #####:  270:		    ap_name = long_val (&str);
+call    0 never executed
+        -:  271:#if DEBUG > 2
+        -:  272:		    printf ("auto number %d\n", ap_name);
+        -:  273:#endif
+    #####:  274:		    functions[(int)func].f_autos = 
+    #####:  275:		      nextarg (functions[(int)func].f_autos, ap_name, FALSE);
+call    0 never executed
+        -:  276:		  }
+    #####:  277:		save_adr = load_adr;
+    #####:  278:		load_adr.pc_func = func;
+    #####:  279:		load_adr.pc_addr = 0;
+    #####:  280:		break;
+        -:  281:		
+    #####:  282:	      case ']':  /* A function end */
+    #####:  283:		functions[load_adr.pc_func].f_defined = TRUE;
+    #####:  284:		load_adr = save_adr;
+    #####:  285:		break;
+        -:  286:
+     3929:  287:	      case 'C':  /* Call a function. */
+     3929:  288:		addbyte (*str++);
+call    0 returned 100%
+     3929:  289:		func = long_val (&str);
+call    0 returned 100%
+     3929:  290:		if (func < 128)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+     3929:  291:		  addbyte ( (char) func);
+call    0 returned 100%
+        -:  292:		else
+        -:  293:		  {
+    #####:  294:		    addbyte (((func >> 8) & 0xff) | 0x80);
+call    0 never executed
+    #####:  295:		    addbyte (func & 0xff);
+call    0 never executed
+        -:  296:		  }
+     3929:  297:		if (*str == ',') str++;
+branch  0 taken 95% (fallthrough)
+branch  1 taken 5%
+     7650:  298:		while (*str != ':')
+branch  0 taken 49%
+branch  1 taken 51% (fallthrough)
+     3721:  299:		  addbyte (*str++);
+call    0 returned 100%
+     3929:  300:		addbyte (':');
+     3929:  301:		break;
+call    0 returned 100%
+        -:  302:		
+    #####:  303:	      case 'c':  /* Call a special function. */
+    #####:  304:		addbyte (*str++);
+call    0 never executed
+    #####:  305:		addbyte (*str);
+    #####:  306:		break;
+call    0 never executed
+        -:  307:
+   141495:  308:	      case 'K':  /* A constant.... may have an "F" in it. */
+   141495:  309:		addbyte (*str);
+call    0 returned 100%
+   141495:  310:		load_const = TRUE;
+   141495:  311:		break;
+        -:  312:
+   188987:  313:	      case 'd':  /* Decrement. */
+        -:  314:	      case 'i':  /* Increment. */
+        -:  315:	      case 'l':  /* Load. */
+        -:  316:	      case 's':  /* Store. */
+        -:  317:	      case 'A':  /* Array Increment */
+        -:  318:	      case 'M':  /* Array Decrement */
+        -:  319:	      case 'L':  /* Array Load */
+        -:  320:	      case 'S':  /* Array Store */
+   188987:  321:		addbyte (*str++);
+call    0 returned 100%
+   188987:  322:		vaf_name = long_val (&str);
+call    0 returned 100%
+   188987:  323:		if (vaf_name < 128)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+   188987:  324:		  addbyte (vaf_name);
+call    0 returned 100%
+        -:  325:		else
+        -:  326:		  {
+    #####:  327:		    addbyte (((vaf_name >> 8) & 0xff) | 0x80);
+call    0 never executed
+    #####:  328:		    addbyte (vaf_name & 0xff);
+call    0 never executed
+        -:  329:		  }
+        -:  330:		break;
+        -:  331:
+    #####:  332:	      case '@':  /* A command! */
+    #####:  333:		switch (*(++str))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+        -:  334:		  {
+    #####:  335:		  case 'i':
+    #####:  336:		    init_load ();
+    #####:  337:		    break;
+call    0 never executed
+    #####:  338:		  case 'r':
+    #####:  339:		    execute ();
+    #####:  340:		    break;
+call    0 never executed
+        -:  341:		  } 
+        -:  342:		break;
+        -:  343:
+        -:  344:	      case '\n':  /* Ignore the newlines */
+        -:  345:		break;
+        -:  346:		
+   373527:  347:	      default:   /* Anything else */
+   373527:  348:		addbyte (*str);	   
+call    0 returned 100%
+        -:  349:	      }
+   768967:  350:	    str++;
+        -:  351:	  }
+        -:  352:    }
+        -:  353:}

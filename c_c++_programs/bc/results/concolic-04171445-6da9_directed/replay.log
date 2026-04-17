@@ -1,0 +1,230 @@
+2026-04-17 15:05:45.409 | INFO     | app.utils.utils:load_code_from_file:65 - Loading file from ./code_example/prompt/sleep.c
+2026-04-17 15:05:45.409 | INFO     | app.utils.utils:load_code_from_file:65 - Loading file from ./code_example/prompt/sleep.c.instr
+2026-04-17 15:05:45.438 | INFO     | app.utils.utils:update_project_dir:26 - Project directory /bc-gcov
+2026-04-17 15:05:47.123 | INFO     | app.agents.testcase:load_testcases:780 - Loaded 21 test cases
+2026-04-17 15:05:47.123 | INFO     | app.commands.replay:replay_test_case:106 - Ready to replay 21 test cases
+2026-04-17 15:05:47.124 | INFO     | app.commands.replay:replay_test_case:154 - Valid testcases after time_taken sorting (21 testcases): [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 12, 15, 16, 17, 18, 19, 20]
+2026-04-17 15:05:47.124 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #0: replay started ---
+2026-04-17 15:05:47.137 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:47.155 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:47.157 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:47.159 | INFO     | app.commands.replay:replay_test_case:214 - Test case #0 has been executed successfully
+2026-04-17 15:05:47.159 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:47.348 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #0: replay finished ---
+2026-04-17 15:05:47.349 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #1: replay started ---
+2026-04-17 15:05:47.349 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/bc.c 1488 YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
+2026-04-17 15:05:47.500 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/bc.c 1489 *++yyvsp = yylval;
+2026-04-17 15:05:47.685 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0, 9]
+2026-04-17 15:05:47.692 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:47.694 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:47.695 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:47.695 | INFO     | app.commands.replay:replay_test_case:214 - Test case #1 has been executed successfully
+2026-04-17 15:05:47.695 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:47.858 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/bc.c 1488 YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
+2026-04-17 15:05:48.006 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/bc.c 1489 *++yyvsp = yylval;
+2026-04-17 15:05:48.144 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #1: replay finished ---
+2026-04-17 15:05:48.144 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #2: replay started ---
+2026-04-17 15:05:48.144 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 114 usage(argv[0]);
+2026-04-17 15:05:48.397 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 115 bc_exit (0);
+2026-04-17 15:05:48.544 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0, 0]
+2026-04-17 15:05:48.557 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:48.563 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:48.565 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:48.565 | INFO     | app.commands.replay:replay_test_case:214 - Test case #2 has been executed successfully
+2026-04-17 15:05:48.565 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:48.691 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 114 usage(argv[0]);
+2026-04-17 15:05:48.804 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #2: replay finished ---
+2026-04-17 15:05:48.804 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #3: replay started ---
+2026-04-17 15:05:48.804 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 135 show_bc_version ();
+2026-04-17 15:05:48.947 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 136 bc_exit (0);
+2026-04-17 15:05:49.084 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0, 1]
+2026-04-17 15:05:49.086 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:49.089 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:49.090 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:49.091 | INFO     | app.commands.replay:replay_test_case:214 - Test case #3 has been executed successfully
+2026-04-17 15:05:49.091 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:49.214 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 135 show_bc_version ();
+2026-04-17 15:05:49.343 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #3: replay finished ---
+2026-04-17 15:05:49.343 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #4: replay started ---
+2026-04-17 15:05:49.343 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 123 use_math = TRUE;
+2026-04-17 15:05:49.459 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 124 break;
+2026-04-17 15:05:49.571 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0, 0]
+2026-04-17 15:05:49.573 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:49.574 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:49.575 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:49.576 | INFO     | app.commands.replay:replay_test_case:214 - Test case #4 has been executed successfully
+2026-04-17 15:05:49.576 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:49.687 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 123 use_math = TRUE;
+2026-04-17 15:05:49.806 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #4: replay finished ---
+2026-04-17 15:05:49.806 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #5: replay started ---
+2026-04-17 15:05:49.807 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 343 new_file = fopen (file_names->name, "r");
+2026-04-17 15:05:49.927 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0]
+2026-04-17 15:05:49.929 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:49.931 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:49.932 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:49.932 | INFO     | app.commands.replay:replay_test_case:214 - Test case #5 has been executed successfully
+2026-04-17 15:05:49.933 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:50.044 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 343 new_file = fopen (file_names->name, "r");
+2026-04-17 15:05:50.162 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #5: replay finished ---
+2026-04-17 15:05:50.162 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #6: replay started ---
+2026-04-17 15:05:50.162 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 183 interactive = TRUE;
+2026-04-17 15:05:50.283 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0]
+2026-04-17 15:05:50.285 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:50.291 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:50.292 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:50.292 | INFO     | app.commands.replay:replay_test_case:214 - Test case #6 has been executed successfully
+2026-04-17 15:05:50.292 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:50.398 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 183 interactive = TRUE;
+2026-04-17 15:05:50.521 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #6: replay finished ---
+2026-04-17 15:05:50.521 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #7: replay started ---
+2026-04-17 15:05:50.522 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 101 break;
+2026-04-17 15:05:50.638 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0]
+2026-04-17 15:05:50.640 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:50.642 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:50.643 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:50.643 | INFO     | app.commands.replay:replay_test_case:214 - Test case #7 has been executed successfully
+2026-04-17 15:05:50.643 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:50.755 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 101 break;
+2026-04-17 15:05:50.869 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #7: replay finished ---
+2026-04-17 15:05:50.869 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #8: replay started ---
+2026-04-17 15:05:50.869 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/bc.c 1489 *++yyvsp = yylval;
+2026-04-17 15:05:50.979 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [50]
+2026-04-17 15:05:50.981 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:50.983 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:50.984 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:50.985 | INFO     | app.commands.replay:replay_test_case:214 - Test case #8 has been executed successfully
+2026-04-17 15:05:50.985 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:51.089 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/bc.c 1489 *++yyvsp = yylval;
+2026-04-17 15:05:51.195 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #8: replay finished ---
+2026-04-17 15:05:51.195 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #9: replay started ---
+2026-04-17 15:05:51.195 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 294 bc_exit (0);
+2026-04-17 15:05:51.306 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0]
+2026-04-17 15:05:51.308 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:51.310 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:51.311 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:51.311 | INFO     | app.commands.replay:replay_test_case:214 - Test case #9 has been executed successfully
+2026-04-17 15:05:51.311 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:51.427 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 294 bc_exit (0);
+2026-04-17 15:05:51.584 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #9: replay finished ---
+2026-04-17 15:05:51.584 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #10: replay started ---
+2026-04-17 15:05:51.584 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 128 break;
+2026-04-17 15:05:51.700 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0]
+2026-04-17 15:05:51.703 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:51.705 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:51.706 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:51.706 | INFO     | app.commands.replay:replay_test_case:214 - Test case #10 has been executed successfully
+2026-04-17 15:05:51.706 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:51.829 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 128 break;
+2026-04-17 15:05:51.941 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #10: replay finished ---
+2026-04-17 15:05:51.941 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #11: replay started ---
+2026-04-17 15:05:51.941 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 110 compile_only = TRUE;
+2026-04-17 15:05:52.053 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 111 break;
+2026-04-17 15:05:52.159 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0, 0]
+2026-04-17 15:05:52.161 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:52.163 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:52.164 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:52.164 | INFO     | app.commands.replay:replay_test_case:214 - Test case #11 has been executed successfully
+2026-04-17 15:05:52.165 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:52.267 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 110 compile_only = TRUE;
+2026-04-17 15:05:52.374 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #11: replay finished ---
+2026-04-17 15:05:52.374 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #13: replay started ---
+2026-04-17 15:05:52.375 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 131 std_only = TRUE;
+2026-04-17 15:05:52.485 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 132 break;
+2026-04-17 15:05:52.595 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0, 0]
+2026-04-17 15:05:52.597 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:52.599 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:52.600 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:52.600 | INFO     | app.commands.replay:replay_test_case:214 - Test case #13 has been executed successfully
+2026-04-17 15:05:52.600 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:52.701 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 131 std_only = TRUE;
+2026-04-17 15:05:52.805 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #13: replay finished ---
+2026-04-17 15:05:52.805 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #14: replay started ---
+2026-04-17 15:05:52.805 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 140 warn_not_std = TRUE;
+2026-04-17 15:05:52.910 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 141 break;
+2026-04-17 15:05:53.010 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0, 0]
+2026-04-17 15:05:53.012 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:53.013 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:53.014 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:53.015 | INFO     | app.commands.replay:replay_test_case:214 - Test case #14 has been executed successfully
+2026-04-17 15:05:53.015 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:53.116 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 140 warn_not_std = TRUE;
+2026-04-17 15:05:53.218 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #14: replay finished ---
+2026-04-17 15:05:53.218 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #12: replay started ---
+2026-04-17 15:05:53.219 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 119 interactive = TRUE;
+2026-04-17 15:05:53.321 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 120 break;
+2026-04-17 15:05:53.426 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0, 0]
+2026-04-17 15:05:53.428 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:53.430 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:53.431 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:53.431 | INFO     | app.commands.replay:replay_test_case:214 - Test case #12 has been executed successfully
+2026-04-17 15:05:53.431 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:53.533 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 119 interactive = TRUE;
+2026-04-17 15:05:53.637 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #12: replay finished ---
+2026-04-17 15:05:53.637 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #15: replay started ---
+2026-04-17 15:05:53.637 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 353 fprintf (stderr, "File %s is unavailable.\n", file_names->name);
+2026-04-17 15:05:53.738 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 354 bc_exit (1);
+2026-04-17 15:05:53.839 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0, 0]
+2026-04-17 15:05:53.840 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:53.842 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:53.843 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:53.843 | INFO     | app.commands.replay:replay_test_case:214 - Test case #15 has been executed successfully
+2026-04-17 15:05:53.843 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:53.942 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 353 fprintf (stderr, "File %s is unavailable.\n", file_names->name);
+2026-04-17 15:05:54.042 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 354 bc_exit (1);
+2026-04-17 15:05:54.171 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #15: replay finished ---
+2026-04-17 15:05:54.171 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #16: replay started ---
+2026-04-17 15:05:54.171 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 347 temp = file_names;
+2026-04-17 15:05:54.280 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 348 file_name  = temp->name;
+2026-04-17 15:05:54.382 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 349 file_names = temp->next;
+2026-04-17 15:05:54.482 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [1, 1, 1]
+2026-04-17 15:05:54.485 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:54.486 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:54.487 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:54.488 | INFO     | app.commands.replay:replay_test_case:214 - Test case #16 has been executed successfully
+2026-04-17 15:05:54.488 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:54.587 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 347 temp = file_names;
+2026-04-17 15:05:54.690 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #16: replay finished ---
+2026-04-17 15:05:54.690 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #17: replay started ---
+2026-04-17 15:05:54.690 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 358 new_yy_file (stdin);
+2026-04-17 15:05:54.789 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 359 is_std_in = TRUE;
+2026-04-17 15:05:54.891 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [13, 13]
+2026-04-17 15:05:54.893 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:54.894 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:54.895 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:54.896 | INFO     | app.commands.replay:replay_test_case:214 - Test case #17 has been executed successfully
+2026-04-17 15:05:54.896 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:54.997 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 358 new_yy_file (stdin);
+2026-04-17 15:05:55.096 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #17: replay finished ---
+2026-04-17 15:05:55.096 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #18: replay started ---
+2026-04-17 15:05:55.096 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 321 /* Load the code from a precompiled version of the math libarary. */
+2026-04-17 15:05:55.197 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 322 CONST char **mstr;
+2026-04-17 15:05:55.299 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0, 1, 0]
+2026-04-17 15:05:55.301 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:55.302 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:55.303 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:55.304 | INFO     | app.commands.replay:replay_test_case:214 - Test case #18 has been executed successfully
+2026-04-17 15:05:55.304 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:55.405 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 321 /* Load the code from a precompiled version of the math libarary. */
+2026-04-17 15:05:55.544 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 322 CONST char **mstr;
+2026-04-17 15:05:55.647 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #18: replay finished ---
+2026-04-17 15:05:55.647 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #19: replay started ---
+2026-04-17 15:05:55.647 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 165 last->next = temp;
+2026-04-17 15:05:55.750 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0]
+2026-04-17 15:05:55.752 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:55.753 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:55.755 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:55.755 | INFO     | app.commands.replay:replay_test_case:214 - Test case #19 has been executed successfully
+2026-04-17 15:05:55.755 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:55.856 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 165 last->next = temp;
+2026-04-17 15:05:55.956 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #19: replay finished ---
+2026-04-17 15:05:55.956 | INFO     | app.commands.replay:replay_test_case:164 - --- Test case #20: replay started ---
+2026-04-17 15:05:55.956 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 315 return (FALSE);
+2026-04-17 15:05:56.057 | DEBUG    | app.commands.replay:replay_test_case:207 - Target lines previous coverage: [0]
+2026-04-17 15:05:56.059 | DEBUG    | app.utils.utils:_execute_target:183 - Child process changed working directory to /bc-gcov
+2026-04-17 15:05:56.060 | DEBUG    | app.utils.utils:_execute_target:267 - Restored working directory to /concolic-agent
+2026-04-17 15:05:56.061 | DEBUG    | app.utils.utils:exec_code_function:326 - Child process finished with exit code: 0
+2026-04-17 15:05:56.062 | INFO     | app.commands.replay:replay_test_case:214 - Test case #20 has been executed successfully
+2026-04-17 15:05:56.062 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh None None None
+2026-04-17 15:05:56.161 | DEBUG    | app.commands.replay:run_coverage_script:30 - Running coverage script with args: /coverage.sh bc/main.c 315 return (FALSE);
+2026-04-17 15:05:56.263 | INFO     | app.commands.replay:replay_test_case:282 - --- Test case #20: replay finished ---
+2026-04-17 15:05:56.264 | INFO     | app.commands.replay:replay_test_case:284 - All test cases have been replayed (21 testcases): [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 12, 15, 16, 17, 18, 19, 20]

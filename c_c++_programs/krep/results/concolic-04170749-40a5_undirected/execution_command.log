@@ -1,0 +1,5 @@
+Executing command: /run.sh concolic 1200
+Start time: Fri Apr 17 07:49:53 UTC 2026
+USE_LOCAL_CODE=1 (local code, no git pull)
+DIRECTED_MODE=monitor DIRECTED_TARGET=krep.c:1556
+EXTRA_ARGS=--monitor-target krep.c:1556 --plateau_slot 30

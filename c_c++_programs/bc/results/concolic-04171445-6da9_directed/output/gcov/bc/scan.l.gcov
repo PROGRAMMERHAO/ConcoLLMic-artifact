@@ -1,0 +1,439 @@
+        -:    0:Source:scan.l
+        -:    0:Graph:./scan.gcno
+        -:    0:Data:./scan.gcda
+        -:    0:Runs:21
+        -:    1:/*  This file is part of GNU bc.
+        -:    2:
+        -:    3:    Copyright (C) 1991-1994, 1997, 2006, 2008, 2012-2017 Free Software Foundation, Inc.
+        -:    4:
+        -:    5:    This program is free software; you can redistribute it and/or modify
+        -:    6:    it under the terms of the GNU General Public License as published by
+        -:    7:    the Free Software Foundation; either version 3 of the License , or
+        -:    8:    (at your option) any later version.
+        -:    9:
+        -:   10:    This program is distributed in the hope that it will be useful,
+        -:   11:    but WITHOUT ANY WARRANTY; without even the implied warranty of
+        -:   12:    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        -:   13:    GNU General Public License for more details.
+        -:   14:
+        -:   15:    You should have received a copy of the GNU General Public License
+        -:   16:    along with this program; see the file COPYING.  If not, see
+        -:   17:    <http://www.gnu.org/licenses>.
+        -:   18:
+        -:   19:    You may contact the author by:
+        -:   20:       e-mail:  philnelson@acm.org
+        -:   21:      us-mail:  Philip A. Nelson
+        -:   22:                Computer Science Department, 9062
+        -:   23:                Western Washington University
+        -:   24:                Bellingham, WA 98226-9062
+        -:   25:       
+        -:   26:*************************************************************************/
+        -:   27:
+        -:   28:/* scan.l: the (f)lex description file for the scanner. */
+        -:   29:
+        -:   30:%{
+        -:   31:
+        -:   32:#include "bcdefs.h"
+        -:   33:#include "bc.h"
+        -:   34:#include "global.h"
+        -:   35:#include "proto.h"
+        -:   36:#include <errno.h>
+        -:   37:
+        -:   38:/* Using flex, we can ask for a smaller input buffer.  With lex, this
+        -:   39:   does nothing! */
+        -:   40:
+        -:   41:#ifdef SMALL_BUF
+        -:   42:#undef YY_READ_BUF_SIZE
+        -:   43:#define YY_READ_BUF_SIZE 512
+        -:   44:#endif
+        -:   45:
+        -:   46:/* Force . as last for now. */
+        -:   47:#define DOT_IS_LAST
+        -:   48:
+        -:   49:/* We want to define our own yywrap. */
+        -:   50:#undef yywrap
+        -:   51:int yywrap (void);
+        -:   52:
+        -:   53:#if defined(LIBEDIT)
+        -:   54:/* Support for the BSD libedit with history for
+        -:   55:   nicer input on the interactive part of input. */
+        -:   56:
+        -:   57:#include <histedit.h>
+        -:   58:
+        -:   59:/* Have input call the following function. */
+        -:   60:#undef  YY_INPUT
+        -:   61:#define YY_INPUT(buf,result,max_size) \
+        -:   62:		bcel_input(buf, &result, max_size)
+        -:   63:
+        -:   64:/* Variables to help interface editline with bc. */
+        -:   65:static const char *bcel_line = (char *)NULL;
+        -:   66:static int   bcel_len = 0;
+        -:   67:
+        -:   68:/* bcel_input puts upto MAX characters into BUF with the number put in
+        -:   69:   BUF placed in *RESULT.  If the yy input file is the same as
+        -:   70:   stdin, use editline.  Otherwise, just read it.
+        -:   71:*/
+        -:   72:
+        -:   73:static void
+        -:   74:bcel_input (char *buf, int *result, int max)
+        -:   75:{
+        -:   76:  ssize_t rdsize;
+        -:   77:  if (!edit || yyin != stdin)
+        -:   78:    {
+        -:   79:      while ( (rdsize = read( fileno(yyin), buf, max )) < 0 )
+        -:   80:        if (errno != EINTR)
+        -:   81:	  {
+        -:   82:	    yyerror( "read() in flex scanner failed" );
+        -:   83:	    bc_exit (1);
+        -:   84:	  }
+        -:   85:      *result = (yy_size_t) rdsize;
+        -:   86:      return;
+        -:   87:    }
+        -:   88:
+        -:   89:  /* Do we need a new string? */
+        -:   90:  if (bcel_len == 0)
+        -:   91:    {
+        -:   92:      bcel_line = el_gets(edit, &bcel_len);
+        -:   93:      if (bcel_line == NULL) {
+        -:   94:	/* end of file */
+        -:   95:	*result = 0;
+        -:   96:	bcel_len = 0;
+        -:   97:	return;
+        -:   98:      }
+        -:   99:      if (bcel_len != 0)
+        -:  100:	history (hist, &histev, H_ENTER, bcel_line); 
+        -:  101:      fflush (stdout);
+        -:  102:    }
+        -:  103:
+        -:  104:  if (bcel_len <= max)
+        -:  105:    {
+        -:  106:      strncpy (buf, bcel_line, bcel_len);
+        -:  107:      *result = bcel_len;
+        -:  108:      bcel_len = 0;
+        -:  109:    }
+        -:  110:  else
+        -:  111:    {
+        -:  112:      strncpy (buf, bcel_line, max);
+        -:  113:      *result = max;
+        -:  114:      bcel_line += max;
+        -:  115:      bcel_len -= max;
+        -:  116:    }
+        -:  117:}
+        -:  118:#endif
+        -:  119:
+        -:  120:#ifdef READLINE
+        -:  121:/* Support for the readline and history libraries.  This allows
+        -:  122:   nicer input on the interactive part of input. */
+        -:  123:
+        -:  124:/* Have input call the following function. */
+        -:  125:#undef  YY_INPUT
+        -:  126:#define YY_INPUT(buf,result,max_size) \
+        -:  127:		rl_input((char *)buf, &result, max_size)
+        -:  128:
+        -:  129:/* Variables to help interface readline with bc. */
+        -:  130:static char *rl_line = (char *)NULL;
+        -:  131:static char *rl_start = (char *)NULL;
+        -:  132:static int   rl_len = 0;
+        -:  133:
+        -:  134:/* Definitions for readline access. */
+        -:  135:extern FILE *rl_instream;
+        -:  136:
+        -:  137:/* rl_input puts upto MAX characters into BUF with the number put in
+        -:  138:   BUF placed in *RESULT.  If the yy input file is the same as
+        -:  139:   rl_instream (stdin), use readline.  Otherwise, just read it.
+        -:  140:*/
+        -:  141:
+        -:  142:static void
+        -:  143:rl_input (char *buf, int *result, int max)
+        -:  144:{
+        -:  145:  if (yyin != rl_instream)
+        -:  146:    {
+        -:  147:      while ( (*result = read( fileno(yyin), buf, max )) < 0 )
+        -:  148:        if (errno != EINTR)
+        -:  149:	  {
+        -:  150:	    yyerror( "read() in flex scanner failed" );
+        -:  151:	    bc_exit (1);
+        -:  152:	  }
+        -:  153:      return;
+        -:  154:    }
+        -:  155:
+        -:  156:  /* Do we need a new string? */
+        -:  157:  if (rl_len == 0)
+        -:  158:    {
+        -:  159:      if (rl_start)
+        -:  160:	free(rl_start);
+        -:  161:      rl_start = readline ("");
+        -:  162:      if (rl_start == NULL) {
+        -:  163:	/* end of file */
+        -:  164:	*result = 0;
+        -:  165:	rl_len = 0;
+        -:  166:	return;
+        -:  167:      }
+        -:  168:      rl_line = rl_start;
+        -:  169:      rl_len = strlen (rl_line)+1;
+        -:  170:      if (rl_len != 1)
+        -:  171:	add_history (rl_line); 
+        -:  172:      rl_line[rl_len-1] = '\n';
+        -:  173:      fflush (stdout);
+        -:  174:    }
+        -:  175:
+        -:  176:  if (rl_len <= max)
+        -:  177:    {
+        -:  178:      strncpy (buf, rl_line, rl_len);
+        -:  179:      *result = rl_len;
+        -:  180:      rl_len = 0;
+        -:  181:    }
+        -:  182:  else
+        -:  183:    {
+        -:  184:      strncpy (buf, rl_line, max);
+        -:  185:      *result = max;
+        -:  186:      rl_line += max;
+        -:  187:      rl_len -= max;
+        -:  188:    }
+        -:  189:}
+        -:  190:#endif
+        -:  191:
+        -:  192:#if !defined(READLINE) && !defined(LIBEDIT)
+        -:  193:
+        -:  194:/* MINIX returns from read with < 0 if SIGINT is  encountered.
+        -:  195:   In flex, we can redefine YY_INPUT to the following.  In lex, this
+        -:  196:   does nothing! */
+        -:  197:#undef  YY_INPUT
+        -:  198:#define YY_INPUT(buf,result,max_size) \
+        -:  199:	while ( (result = read( fileno(yyin), (char *) buf, max_size )) < 0 ) \
+        -:  200:	    if (errno != EINTR) \
+        -:  201:		YY_FATAL_ERROR( "read() in flex scanner failed" );
+        -:  202:#endif
+        -:  203:
+        -:  204:%}
+        -:  205:DIGIT [0-9A-Z]
+        -:  206:LETTER [a-z]
+        -:  207:%s slcomment
+        -:  208:%%
+        -:  209:"#"		{
+    #####:  210: 		  if (!std_only)
+branch  0 never executed
+branch  1 never executed
+    #####:  211:		    BEGIN(slcomment);
+        -:  212: 		  else
+    #####:  213:		    yyerror ("illegal character: #");
+call    0 never executed
+        -:  214:		}
+    #####:  215:<slcomment>[^\n]* { BEGIN(INITIAL); }
+    #####:  216:<slcomment>"\n" { line_no++; BEGIN(INITIAL); return(ENDOFLINE); }
+    #####:  217:define return(Define);
+    #####:  218:break  return(Break);
+    #####:  219:quit   return(Quit);
+      17*:  220:length return(Length);
+    #####:  221:return return(Return);
+    #####:  222:for    return(For);
+    #####:  223:if     return(If);
+    #####:  224:while  return(While);
+    #####:  225:sqrt   return(Sqrt);
+    #####:  226:scale  return(Scale);
+    #####:  227:ibase  return(Ibase);
+    #####:  228:obase  return(Obase);
+    #####:  229:auto   return(Auto);
+    #####:  230:else   return(Else);
+    #####:  231:read   return(Read);
+    #####:  232:random return(Random);
+    #####:  233:halt   return(Halt);
+    #####:  234:last   return(Last);
+    #####:  235:void   return(Void); 
+    #####:  236:history {
+    #####:  237:#if defined(READLINE) || defined(LIBEDIT)
+        -:  238:	  return(HistoryVar);
+        -:  239:#else
+    #####:  240:	  yylval.s_value = strcopyof(yytext); return(NAME);
+call    0 never executed
+        -:  241:#endif
+        -:  242:	}
+    #####:  243:
+    #####:  244:warranty return(Warranty);
+    #####:  245:continue return(Continue);
+    #####:  246:print  return(Print);
+    #####:  247:limits return(Limits);
+    #####:  248:"." {
+    #####:  249:#ifdef DOT_IS_LAST
+    #####:  250:       return(Last);
+        -:  251:#else
+        -:  252:       yyerror ("illegal character: %s",yytext);
+        -:  253:#endif
+        -:  254:    }
+       31:  255:"+"|"-"|";"|"("|")"|"{"|"}"|"["|"]"|","|"^" { yylval.c_value = yytext[0]; 
+       31:  256:					      return((int)yytext[0]); }
+    #####:  257:&& { return(AND); }
+    #####:  258:\|\| { return(OR); }
+    #####:  259:"!" { return(NOT); }
+    #####:  260:"*"|"/"|"%"|"&" { yylval.c_value = yytext[0]; return((int)yytext[0]); }
+      15*:  261:"="|\+=|-=|\*=|\/=|%=|\^=  { yylval.c_value = yytext[0]; return(ASSIGN_OP); }
+    #####:  262:=\+|=-|=\*|=\/|=%|=\^  { 
+    #####:  263:#ifdef OLD_EQ_OP
+        -:  264:			 char warn_save;
+        -:  265:			 warn_save = warn_not_std;
+        -:  266:			 warn_not_std = TRUE;
+        -:  267:			 ct_warn ("Old fashioned =<op>");
+        -:  268:			 warn_not_std = warn_save;
+        -:  269:			 yylval.c_value = yytext[1];
+        -:  270:#else
+    #####:  271:			 yylval.c_value = '=';
+    #####:  272:			 yyless (1);
+        -:  273:#endif
+    #####:  274:			 return(ASSIGN_OP);
+        -:  275:		       }
+    #####:  276:==|\<=|\>=|\!=|"<"|">" { yylval.s_value = strcopyof(yytext); return(REL_OP); }
+    #####:  277:\+\+|-- { yylval.c_value = yytext[0]; return(INCR_DECR); }
+call    0 never executed
+    #####:  278:"\n" { line_no++; return(ENDOFLINE); }
+      18*:  279:\\\n {  line_no++;  /* ignore a "quoted" newline */ }
+    #####:  280:[ \t]+  { /* ignore spaces and tabs */ }
+        -:  281:"/*"  {
+        -:  282:	int c;
+        -:  283:
+        -:  284:	for (;;)
+        -:  285:	  {
+       16:  286:	    while ( ((c=input()) != '*') && (c != EOF)) 
+call    0 returned 100%
+branch  1 taken 94% (fallthrough)
+branch  2 taken 6%
+branch  3 taken 100%
+branch  4 taken 0% (fallthrough)
+        -:  287:	      /* eat it */
+      15*:  288:	      if (c == '\n') line_no++;
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        1:  289:	    if (c == '*')
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -:  290: 	      {
+        1:  291:		while ( (c=input()) == '*') /* eat it*/;
+call    0 returned 100%
+branch  1 taken 0%
+branch  2 taken 100% (fallthrough)
+        1:  292:		if (c == '/') break; /* at end of comment */
+branch  0 taken 100%
+branch  1 taken 0% (fallthrough)
+    #####:  293:		if (c == '\n') line_no++;
+branch  0 never executed
+branch  1 never executed
+        -:  294:	      }
+    #####:  295:	    if (c == EOF)
+branch  0 never executed
+branch  1 never executed
+        -:  296:	      {
+     236*:  297:		fprintf (stderr,"EOF encountered in a comment.\n");
+call    0 never executed
+        -:  298:		break;
+        -:  299:	      }
+        -:  300:	  }
+        -:  301:      }
+    #####:  302:[a-z][a-z0-9_]* { yylval.s_value = strcopyof(yytext); return(NAME); }
+    #####:  303:\"[^\"]*\"  {
+call    0 never executed
+    #####:  304: 	      const char *look;
+    #####:  305:	      int count = 0;
+    #####:  306:	      yylval.s_value = strcopyof(yytext);
+call    0 never executed
+    #####:  307:	      for (look = yytext; *look != 0; look++)
+branch  0 never executed
+branch  1 never executed
+        -:  308:		{
+    #####:  309:		  if (*look == '\n') line_no++;
+branch  0 never executed
+branch  1 never executed
+    #####:  310:		  if (*look == '"')  count++;
+branch  0 never executed
+branch  1 never executed
+        -:  311:		}
+    #####:  312:	      if (count != 2) yyerror ("NUL character in string.");
+branch  0 never executed
+branch  1 never executed
+call    2 never executed
+        -:  313:	      return(STRING);
+        -:  314:	    }
+       63:  315:{DIGIT}({DIGIT}|\\\n)*("."({DIGIT}|\\\n)*)?|"."(\\\n)*{DIGIT}({DIGIT}|\\\n)* {
+       63:  316:	      char *src, *dst;
+       63:  317:	      int len;
+        -:  318:	      /* remove a trailing decimal point. */
+       63:  319:	      len = strlen(yytext);
+       63:  320:	      if (yytext[len-1] == '.')
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+    #####:  321:	        yytext[len-1] = 0;
+        -:  322:	      /* remove leading zeros. */
+       63:  323:	      src = yytext;
+       63:  324:	      dst = yytext;
+      63*:  325:	      while (*src == '0') src++;
+branch  0 taken 0%
+branch  1 taken 100% (fallthrough)
+      63*:  326:	      if (*src == 0) src--;
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  327:	      /* Copy strings removing the newlines. */
+      201:  328:	      while (*src != 0)
+branch  0 taken 69%
+branch  1 taken 31% (fallthrough)
+        -:  329:		{
+      138:  330:	          if (*src == '\\')
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  331:		    {
+    #####:  332:		      src++; src++;
+    #####:  333:		      line_no++;
+        -:  334:		    }
+      138:  335:		  if (*src == ',')
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  336:		    {
+    #####:  337:		      src++;
+    #####:  338:		      ct_warn("Commas in numbers");
+call    0 never executed
+        -:  339:		    }		    
+        -:  340:		  else
+      138:  341:		    *dst++ = *src++;
+        -:  342:	        }
+       63:  343:	      *dst = 0;
+       63:  344:	      yylval.s_value = strcopyof(yytext); 
+call    0 returned 100%
+       63:  345:	      return(NUMBER);
+        -:  346:	    }
+    #####:  347:.       {
+    #####:  348:	  if (yytext[0] < ' ')
+branch  0 never executed
+branch  1 never executed
+    #####:  349:	    yyerror ("illegal character: ^%c",yytext[0] + '@');
+call    0 never executed
+        -:  350:	  else
+    #####:  351:	    if (yytext[0] > '~')
+branch  0 never executed
+branch  1 never executed
+    #####:  352:	      yyerror ("illegal character: \\%03o", (int) yytext[0]);
+call    0 never executed
+        -:  353:	    else
+    #####:  354:	      yyerror ("illegal character: %s",yytext);
+call    0 never executed
+        -:  355:	}
+    #####:  356:%%
+    #####:  357:
+call    0 never executed
+        -:  358:
+        -:  359:
+        -:  360:/* This is the way to get multiple files input into lex. */
+        -:  361:
+        -:  362:int
+function yywrap called 0 returned 0% blocks executed 0%
+       1*:  363:yywrap(void)
+        -:  364:{
+       1*:  365:  if (!open_new_file ()) return (1);	/* EOF on standard in. */
+call    0 never executed
+branch  1 never executed
+branch  2 never executed
+call    3 never executed
+branch  4 never executed
+branch  5 never executed
+call    6 returned 100%
+branch  7 taken 100% (fallthrough)
+branch  8 taken 0%
+        -:  366:  return (0);          			/* We have more input. */
+        -:  367:  yyunput(0,NULL);	/* Make sure the compiler think yyunput is used. */
+        -:  368:}

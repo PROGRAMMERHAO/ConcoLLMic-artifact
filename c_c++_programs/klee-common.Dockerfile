@@ -1,10 +1,13 @@
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
+RUN sed -i 's|http://archive.ubuntu.com|http://mirrors.aliyun.com|g; s|http://security.ubuntu.com|http://mirrors.aliyun.com|g' /etc/apt/sources.list
+
 # Install dependencies
 RUN apt-get update && apt-get install -y \
-    build-essential cmake curl file g++-multilib gcc-multilib git \
-    libcap-dev libgoogle-perftools-dev libncurses5-dev libsqlite3-dev libtcmalloc-minimal4 \
+    build-essential cmake curl file git \
+    $([ "$(dpkg --print-architecture)" = "amd64" ] && echo "g++-multilib gcc-multilib") \
+    libcap-dev libgoogle-perftools-dev libncurses5-dev libsqlite3-dev \
     python3-pip python3-tabulate pipx unzip graphviz doxygen
 RUN apt-get install -y clang-13 llvm-13 llvm-13-dev llvm-13-tools
 RUN apt-get install -y \

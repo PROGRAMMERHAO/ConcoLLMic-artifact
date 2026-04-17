@@ -14,8 +14,9 @@
 x-local-concolic: &local-concolic
   environment:
     USE_LOCAL_CODE: "1"
+    ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
   volumes:
-    - /home/haozeyu/ConcoLLMic:/concolic-agent:ro
+    - /Users/haozeyu/Documents/ConcoLLMic:/concolic-agent:ro
 
 services:
   bc-concolic:
@@ -35,6 +36,59 @@ services:
   woff2-concolic:
     <<: *local-concolic
 
+  # ---------- directed testing variants for bc ----------
+  # Compare three modes for reaching a target line in bc.
+  # Results land in bc/results/<mode>-<timestamp>-<hostname>/.
+  # Set DIRECTED_TARGET to the desired target, e.g. "bc/bc.c:LINE".
+
+  bc-directed:
+    <<: *local-concolic
+    build:
+      context: ./bc
+      dockerfile: concolic.Dockerfile
+    image: bc-concolic:latest
+    volumes:
+      - ./bc/results:/shared/:rw
+      - /Users/haozeyu/Documents/ConcoLLMic:/concolic-agent:ro
+    environment:
+      USE_LOCAL_CODE: "1"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+      DIRECTED_MODE: "directed"
+      DIRECTED_TARGET: "${DIRECTED_TARGET}"
+    command: ["/bin/bash", "/run.sh", "concolic", "${TIMEOUT:-14400}"]
+
+  bc-directed-nobr:
+    <<: *local-concolic
+    build:
+      context: ./bc
+      dockerfile: concolic.Dockerfile
+    image: bc-concolic:latest
+    volumes:
+      - ./bc/results:/shared/:rw
+      - /Users/haozeyu/Documents/ConcoLLMic:/concolic-agent:ro
+    environment:
+      USE_LOCAL_CODE: "1"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+      DIRECTED_MODE: "directed-nobr"
+      DIRECTED_TARGET: "${DIRECTED_TARGET}"
+    command: ["/bin/bash", "/run.sh", "concolic", "${TIMEOUT:-14400}"]
+
+  bc-monitor:
+    <<: *local-concolic
+    build:
+      context: ./bc
+      dockerfile: concolic.Dockerfile
+    image: bc-concolic:latest
+    volumes:
+      - ./bc/results:/shared/:rw
+      - /Users/haozeyu/Documents/ConcoLLMic:/concolic-agent:ro
+    environment:
+      USE_LOCAL_CODE: "1"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+      DIRECTED_MODE: "monitor"
+      DIRECTED_TARGET: "${DIRECTED_TARGET}"
+    command: ["/bin/bash", "/run.sh", "concolic", "${TIMEOUT:-14400}"]
+
   # ---------- directed testing variants for krep ----------
   # Compare three modes for reaching krep.c:1556 (the known vulnerability).
   # Results land in krep/results/<mode>-<timestamp>-<hostname>/.
@@ -48,9 +102,10 @@ services:
     image: krep-concolic:latest
     volumes:
       - ./krep/results:/shared/:rw
-      - /home/haozeyu/ConcoLLMic:/concolic-agent:ro
+      - /Users/haozeyu/Documents/ConcoLLMic:/concolic-agent:ro
     environment:
       USE_LOCAL_CODE: "1"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
       DIRECTED_MODE: "directed"
       DIRECTED_TARGET: "krep.c:1556"
     command: ["/bin/bash", "/run.sh", "concolic", "${TIMEOUT:-14400}"]
@@ -63,9 +118,10 @@ services:
     image: krep-concolic:latest
     volumes:
       - ./krep/results:/shared/:rw
-      - /home/haozeyu/ConcoLLMic:/concolic-agent:ro
+      - /Users/haozeyu/Documents/ConcoLLMic:/concolic-agent:ro
     environment:
       USE_LOCAL_CODE: "1"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
       DIRECTED_MODE: "directed-nobr"
       DIRECTED_TARGET: "krep.c:1556"
     command: ["/bin/bash", "/run.sh", "concolic", "${TIMEOUT:-14400}"]
@@ -78,9 +134,10 @@ services:
     image: krep-concolic:latest
     volumes:
       - ./krep/results:/shared/:rw
-      - /home/haozeyu/ConcoLLMic:/concolic-agent:ro
+      - /Users/haozeyu/Documents/ConcoLLMic:/concolic-agent:ro
     environment:
       USE_LOCAL_CODE: "1"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
       DIRECTED_MODE: "monitor"
       DIRECTED_TARGET: "krep.c:1556"
     command: ["/bin/bash", "/run.sh", "concolic", "${TIMEOUT:-14400}"]

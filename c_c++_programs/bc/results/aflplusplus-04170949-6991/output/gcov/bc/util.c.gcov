@@ -1,0 +1,1093 @@
+        -:    0:Source:util.c
+        -:    0:Graph:./util.gcno
+        -:    0:Data:./util.gcda
+        -:    0:Runs:2083
+        -:    1:/*  This file is part of GNU bc.
+        -:    2:
+        -:    3:    Copyright (C) 1991-1994, 1997, 2006, 2008, 2012-2017 Free Software Foundation, Inc.
+        -:    4:
+        -:    5:    This program is free software; you can redistribute it and/or modify
+        -:    6:    it under the terms of the GNU General Public License as published by
+        -:    7:    the Free Software Foundation; either version 3 of the License , or
+        -:    8:    (at your option) any later version.
+        -:    9:
+        -:   10:    This program is distributed in the hope that it will be useful,
+        -:   11:    but WITHOUT ANY WARRANTY; without even the implied warranty of
+        -:   12:    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        -:   13:    GNU General Public License for more details.
+        -:   14:
+        -:   15:    You should have received a copy of the GNU General Public License
+        -:   16:    along with this program; see the file COPYING.  If not, see
+        -:   17:    <http://www.gnu.org/licenses>.
+        -:   18:
+        -:   19:    You may contact the author by:
+        -:   20:       e-mail:  philnelson@acm.org
+        -:   21:      us-mail:  Philip A. Nelson
+        -:   22:                Computer Science Department, 9062
+        -:   23:                Western Washington University
+        -:   24:                Bellingham, WA 98226-9062
+        -:   25:       
+        -:   26:*************************************************************************/
+        -:   27:
+        -:   28:/* util.c: Utility routines for bc. */
+        -:   29:
+        -:   30:#include "bcdefs.h"
+        -:   31:#ifndef VARARGS
+        -:   32:#include <stdarg.h>
+        -:   33:#else
+        -:   34:#include <varargs.h>
+        -:   35:#endif
+        -:   36:#include "proto.h"
+        -:   37:
+        -:   38:
+        -:   39:/* strcopyof mallocs new memory and copies a string to to the new
+        -:   40:   memory. */
+        -:   41:
+        -:   42:char *
+function strcopyof called 653183 returned 100% blocks executed 100%
+   653183:   43:strcopyof (const char *str)
+        -:   44:{
+   653183:   45:  char *temp;
+        -:   46:
+   653183:   47:  temp = bc_malloc (strlen (str)+1);
+call    0 returned 100%
+   653183:   48:  return (strcpy (temp,str));
+        -:   49:}
+        -:   50:
+        -:   51:
+        -:   52:/* nextarg adds another value to the list of arguments. */
+        -:   53:
+        -:   54:arg_list *
+function nextarg called 7277 returned 100% blocks executed 100%
+     7277:   55:nextarg (arg_list *args, int val, int is_var)
+     7277:   56:{ arg_list *temp;
+        -:   57:
+     7277:   58:  temp = bc_malloc (sizeof (arg_list));
+call    0 returned 100%
+     7277:   59:  temp->av_name = val;
+     7277:   60:  temp->arg_is_var = is_var;
+     7277:   61:  temp->next = args;
+        -:   62: 
+     7277:   63:  return (temp);
+        -:   64:}
+        -:   65:
+        -:   66:
+        -:   67:/* For generate, we must produce a string in the form
+        -:   68:    "val,val,...,val".  We also need a couple of static variables
+        -:   69:   for retaining old generated strings.  It also uses a recursive
+        -:   70:   function that builds the string. */
+        -:   71:
+        -:   72:static char *arglist1 = NULL, *arglist2 = NULL;
+        -:   73:
+        -:   74:
+        -:   75:/* make_arg_str does the actual construction of the argument string.
+        -:   76:   ARGS is the pointer to the list and LEN is the maximum number of
+        -:   77:   characters needed.  1 char is the minimum needed. 
+        -:   78: */
+        -:   79:
+        -:   80:static char *make_arg_str (arg_list *args, int len);
+        -:   81:
+        -:   82:static char *
+function make_arg_str called 0 returned 0% blocks executed 0%
+    #####:   83:make_arg_str (arg_list *args, int len)
+        -:   84:{
+    #####:   85:  char *temp;
+    #####:   86:  char sval[30];
+        -:   87:
+        -:   88:  /* Recursive call. */
+    #####:   89:  if (args != NULL)
+branch  0 never executed
+branch  1 never executed
+    #####:   90:    temp = make_arg_str (args->next, len+12);
+call    0 never executed
+        -:   91:  else
+        -:   92:    {
+    #####:   93:      temp = bc_malloc (len);
+call    0 never executed
+    #####:   94:      *temp = 0;
+    #####:   95:      return temp;
+        -:   96:    }
+        -:   97:
+        -:   98:  /* Add the current number to the end of the string. */
+    #####:   99:  if (args->arg_is_var)
+branch  0 never executed
+branch  1 never executed
+    #####:  100:    if (len != 1) 
+branch  0 never executed
+branch  1 never executed
+    #####:  101:      snprintf (sval, sizeof(sval), "*%d,", args->av_name);
+        -:  102:    else
+    #####:  103:      snprintf (sval, sizeof(sval), "*%d", args->av_name);
+        -:  104:  else
+    #####:  105:    if (len != 1) 
+branch  0 never executed
+branch  1 never executed
+    #####:  106:      snprintf (sval, sizeof(sval), "%d,", args->av_name);
+        -:  107:    else
+    #####:  108:      snprintf (sval, sizeof(sval), "%d", args->av_name);
+    #####:  109:  temp = strcat (temp, sval);
+    #####:  110:  return (temp);
+        -:  111:}
+        -:  112:
+        -:  113:char *
+function arg_str called 0 returned 0% blocks executed 0%
+    #####:  114:arg_str (arg_list *args)
+        -:  115:{
+    #####:  116:  if (arglist2 != NULL) 
+branch  0 never executed
+branch  1 never executed
+    #####:  117:    free (arglist2);
+    #####:  118:  arglist2 = arglist1;
+    #####:  119:  arglist1 = make_arg_str (args, 1);
+call    0 never executed
+    #####:  120:  return (arglist1);
+        -:  121:}
+        -:  122:
+        -:  123:char *
+function call_str called 4652 returned 100% blocks executed 100%
+     4652:  124:call_str (arg_list *args)
+        -:  125:{
+     4652:  126:  arg_list *temp;
+     4652:  127:  int       arg_count;
+     4652:  128:  int       ix;
+        -:  129:  
+     4652:  130:  if (arglist2 != NULL) 
+branch  0 taken 94% (fallthrough)
+branch  1 taken 6%
+     4382:  131:    free (arglist2);
+     4652:  132:  arglist2 = arglist1;
+        -:  133:
+        -:  134:  /* Count the number of args and add the 0's and 1's. */
+     9390:  135:  for (temp = args, arg_count = 0; temp != NULL; temp = temp->next)
+branch  0 taken 50%
+branch  1 taken 50% (fallthrough)
+     4738:  136:    arg_count++;
+     4652:  137:  arglist1 = bc_malloc(arg_count+1);
+call    0 returned 100%
+     9390:  138:  for (temp = args, ix=0; temp != NULL; temp = temp->next)
+branch  0 taken 50%
+branch  1 taken 50% (fallthrough)
+     9469:  139:    arglist1[ix++] = ( temp->av_name ? '1' : '0');
+branch  0 taken 100% (fallthrough)
+branch  1 taken 1%
+     4652:  140:  arglist1[ix] = 0;
+        -:  141:      
+     4652:  142:  return (arglist1);
+        -:  143:}
+        -:  144:
+        -:  145:/* free_args frees an argument list ARGS. */
+        -:  146:
+        -:  147:void
+function free_args called 4652 returned 100% blocks executed 100%
+     4652:  148:free_args (arg_list *args)
+        -:  149:{ 
+     4652:  150:  arg_list *temp;
+        -:  151: 
+     4652:  152:  temp = args;
+     9390:  153:  while (temp != NULL)
+branch  0 taken 50%
+branch  1 taken 50% (fallthrough)
+        -:  154:    {
+     4738:  155:      args = args->next;
+     4738:  156:      free (temp);
+     4738:  157:      temp = args;
+        -:  158:    }
+     4652:  159:}
+        -:  160:
+        -:  161:
+        -:  162:/* Check for valid parameter (PARAMS) and auto (AUTOS) lists.
+        -:  163:   There must be no duplicates any where.  Also, this is where
+        -:  164:   warnings are generated for array parameters. */
+        -:  165:
+        -:  166:void
+function check_params called 0 returned 0% blocks executed 0%
+    #####:  167:check_params (arg_list *params, arg_list *autos)
+        -:  168:{
+    #####:  169:  arg_list *tmp1, *tmp2;
+        -:  170:
+        -:  171:  /* Check for duplicate parameters. */
+    #####:  172:  if (params != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  173:    {
+        -:  174:      tmp1 = params;
+    #####:  175:      while (tmp1 != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  176:	{
+    #####:  177:	  tmp2 = tmp1->next;
+    #####:  178:	  while (tmp2 != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  179:	    {
+    #####:  180:	      if (tmp2->av_name == tmp1->av_name) 
+branch  0 never executed
+branch  1 never executed
+    #####:  181:		yyerror ("duplicate parameter names");
+call    0 never executed
+    #####:  182:	      tmp2 = tmp2->next;
+        -:  183:	    }
+    #####:  184:	  if (tmp1->arg_is_var)
+branch  0 never executed
+branch  1 never executed
+    #####:  185:	    ct_warn ("Variable array parameter");
+call    0 never executed
+    #####:  186:	  tmp1 = tmp1->next;
+        -:  187:	}
+        -:  188:    }
+        -:  189:
+        -:  190:  /* Check for duplicate autos. */
+    #####:  191:  if (autos != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  192:    {
+        -:  193:      tmp1 = autos;
+    #####:  194:      while (tmp1 != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  195:	{
+    #####:  196:	  tmp2 = tmp1->next;
+    #####:  197:	  while (tmp2 != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  198:	    {
+    #####:  199:	      if (tmp2->av_name == tmp1->av_name) 
+branch  0 never executed
+branch  1 never executed
+    #####:  200:		yyerror ("duplicate auto variable names");
+call    0 never executed
+    #####:  201:	      tmp2 = tmp2->next;
+        -:  202:	    }
+    #####:  203:	  if (tmp1->arg_is_var)
+branch  0 never executed
+branch  1 never executed
+    #####:  204:	    yyerror ("* not allowed here");
+call    0 never executed
+    #####:  205:	  tmp1 = tmp1->next;
+        -:  206:	}
+        -:  207:    }
+        -:  208:
+        -:  209:  /* Check for duplicate between parameters and autos. */
+    #####:  210:  if ((params != NULL) && (autos != NULL))
+branch  0 never executed
+branch  1 never executed
+        -:  211:    {
+        -:  212:      tmp1 = params;
+    #####:  213:      while (tmp1 != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  214:	{
+        -:  215:	  tmp2 = autos;
+    #####:  216:	  while (tmp2 != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  217:	    {
+    #####:  218:	      if (tmp2->av_name == tmp1->av_name) 
+branch  0 never executed
+branch  1 never executed
+    #####:  219:		yyerror ("variable in both parameter and auto lists");
+call    0 never executed
+    #####:  220:	      tmp2 = tmp2->next;
+        -:  221:	    }
+    #####:  222:	  tmp1 = tmp1->next;
+        -:  223:	}
+        -:  224:    }
+    #####:  225:}
+        -:  226:
+        -:  227:/* genstr management to avoid buffer overflow. */
+        -:  228:void
+function set_genstr_size called 188909 returned 100% blocks executed 83%
+   188909:  229:set_genstr_size (int size)
+        -:  230:{
+   188909:  231:  if (size > genlen) {
+branch  0 taken 1% (fallthrough)
+branch  1 taken 99%
+     2083:  232:    if (genstr != NULL)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+    #####:  233:      free(genstr);
+     2083:  234:    genstr = bc_malloc (size);
+call    0 returned 100%
+     2083:  235:    genlen = size;
+        -:  236:  }
+   188909:  237:}
+        -:  238:
+        -:  239:
+        -:  240:/* Initialize the code generator the parser. */
+        -:  241:
+        -:  242:void
+function init_gen called 184257 returned 100% blocks executed 80%
+   184257:  243:init_gen (void)
+        -:  244:{
+        -:  245:  /* Get things ready. */
+   184257:  246:  break_label = 0;
+   184257:  247:  continue_label = 0;
+   184257:  248:  next_label  = 1;
+   184257:  249:  out_count = 2;
+   184257:  250:  if (compile_only) 
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+    #####:  251:    printf ("@i");
+call    0 never executed
+        -:  252:  else
+   184257:  253:    init_load ();
+call    0 returned 100%
+   184257:  254:  had_error = FALSE;
+   184257:  255:  did_gen = FALSE;
+   184257:  256:  set_genstr_size (64);
+call    0 returned 100%
+   184257:  257:}
+        -:  258:
+        -:  259:
+        -:  260:/* generate code STR for the machine. */
+        -:  261:
+        -:  262:void
+function generate called 1744101 returned 100% blocks executed 43%
+  1744101:  263:generate (const char *str)
+        -:  264:{
+  1744101:  265:  did_gen = TRUE;
+  1744101:  266:  if (compile_only)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  267:    {
+    #####:  268:      printf ("%s",str);
+call    0 never executed
+    #####:  269:      out_count += strlen(str);
+    #####:  270:      if (out_count > 60)
+branch  0 never executed
+branch  1 never executed
+        -:  271:	{
+    #####:  272:	  printf ("\n");
+call    0 never executed
+    #####:  273:	  out_count = 0;
+        -:  274:	}
+        -:  275:    }
+        -:  276:  else
+  1744101:  277:    load_code (str);
+call    0 returned 100%
+  1744101:  278:}
+        -:  279:
+        -:  280:
+        -:  281:/* Execute the current code as loaded. */
+        -:  282:
+        -:  283:void
+function run_code called 191117 returned 100% blocks executed 80%
+   191117:  284:run_code(void)
+        -:  285:{
+        -:  286:  /* If no compile errors run the current code. */
+   191117:  287:  if (!had_error && did_gen)
+branch  0 taken 74% (fallthrough)
+branch  1 taken 26%
+branch  2 taken 72% (fallthrough)
+branch  3 taken 28%
+        -:  288:    {
+   102382:  289:      if (compile_only)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  290:	{
+    #####:  291:	  printf ("@r\n"); 
+call    0 never executed
+    #####:  292:	  out_count = 0;
+        -:  293:	}
+        -:  294:      else
+   102382:  295:	execute ();
+call    0 returned 100%
+        -:  296:    }
+        -:  297:
+        -:  298:  /* Reinitialize the code generation and machine. */
+   191117:  299:  if (did_gen)
+branch  0 taken 79% (fallthrough)
+branch  1 taken 21%
+   150492:  300:    init_gen();
+call    0 returned 100%
+        -:  301:  else
+    40625:  302:    had_error = FALSE;
+   191117:  303:}
+        -:  304:
+        -:  305:
+        -:  306:/* Output routines: Write a character CH to the standard output.
+        -:  307:   It keeps track of the number of characters output and may
+        -:  308:   break the output with a "\<cr>".  Always used for numbers. */
+        -:  309:
+        -:  310:void
+function out_char called 619195 returned 100% blocks executed 100%
+   619195:  311:out_char (int ch)
+        -:  312:{
+   619195:  313:  if (ch == '\n')
+branch  0 taken 15% (fallthrough)
+branch  1 taken 85%
+        -:  314:    {
+    95853:  315:      out_col = 0;
+    95853:  316:      putchar ('\n');
+call    0 returned 100%
+        -:  317:    }
+        -:  318:  else
+        -:  319:    {
+   523342:  320:      out_col++;
+   523342:  321:      if (out_col == line_size-1 && line_size != 0)
+branch  0 taken 1% (fallthrough)
+branch  1 taken 99%
+branch  2 taken 100% (fallthrough)
+branch  3 taken 0%
+        -:  322:	{
+     5517:  323:	  putchar ('\\');
+call    0 returned 100%
+     5517:  324:	  putchar ('\n');
+call    0 returned 100%
+     5517:  325:	  out_col = 1;
+        -:  326:	}
+   523342:  327:      putchar (ch);
+call    0 returned 100%
+        -:  328:    }
+   619195:  329:}
+        -:  330:
+        -:  331:/* Output routines: Write a character CH to the standard output.
+        -:  332:   It keeps track of the number of characters output and may
+        -:  333:   break the output with a "\<cr>".  This one is for strings.
+        -:  334:   In POSIX bc, strings are not broken across lines. */
+        -:  335:
+        -:  336:void
+function out_schar called 26248 returned 100% blocks executed 100%
+    26248:  337:out_schar (int ch)
+        -:  338:{
+    26248:  339:  if (ch == '\n')
+branch  0 taken 5% (fallthrough)
+branch  1 taken 95%
+        -:  340:    {
+     1298:  341:      out_col = 0;
+     1298:  342:      putchar ('\n');
+call    0 returned 100%
+        -:  343:    }
+        -:  344:  else
+        -:  345:    {
+    24950:  346:      if (!std_only)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -:  347:	{
+    24950:  348:	  out_col++;
+    24950:  349:	  if (out_col == line_size-1 && line_size != 0)
+branch  0 taken 1% (fallthrough)
+branch  1 taken 99%
+branch  2 taken 100% (fallthrough)
+branch  3 taken 0%
+        -:  350:	    {
+      352:  351:	      putchar ('\\');
+call    0 returned 100%
+      352:  352:	      putchar ('\n');
+call    0 returned 100%
+      352:  353:	      out_col = 1;
+        -:  354:	    }
+        -:  355:	}
+    24950:  356:      putchar (ch);
+call    0 returned 100%
+        -:  357:    }
+    26248:  358:}
+        -:  359:
+        -:  360:
+        -:  361:/* The following are "Symbol Table" routines for the parser. */
+        -:  362:
+        -:  363:/*  find_id returns a pointer to node in TREE that has the correct
+        -:  364:    ID.  If there is no node in TREE with ID, NULL is returned. */
+        -:  365:
+        -:  366:id_rec *
+function find_id called 235466 returned 100% blocks executed 100%
+   235466:  367:find_id (id_rec *tree, const char *id)
+        -:  368:{
+   783728:  369:  int cmp_result;
+        -:  370:  
+        -:  371:  /* Check for an empty tree. */
+   783728:  372:  if (tree == NULL)
+branch  0 taken 98% (fallthrough)
+branch  1 taken 2%
+        -:  373:    return NULL;
+        -:  374:
+        -:  375:  /* Recursively search the tree. */
+   766777:  376:  cmp_result = strcmp (id, tree->id);
+   766777:  377:  if (cmp_result == 0)
+branch  0 taken 72% (fallthrough)
+branch  1 taken 28%
+        -:  378:    return tree;  /* This is the item. */
+   548262:  379:  else if (cmp_result < 0)
+branch  0 taken 43% (fallthrough)
+branch  1 taken 57%
+   238084:  380:    return find_id (tree->left, id);
+        -:  381:  else
+   310178:  382:    return find_id (tree->right, id);  
+        -:  383:}
+        -:  384:
+        -:  385:
+        -:  386:/* insert_id_rec inserts a NEW_ID rec into the tree whose ROOT is
+        -:  387:   provided.  insert_id_rec returns TRUE if the tree height from
+        -:  388:   ROOT down is increased otherwise it returns FALSE.  This is a
+        -:  389:   recursive balanced binary tree insertion algorithm. */
+        -:  390:
+function insert_id_rec called 66874 returned 100% blocks executed 100%
+    66874:  391:int insert_id_rec (id_rec **root, id_rec *new_id)
+        -:  392:{
+    66874:  393:  id_rec *A, *B;
+        -:  394:
+        -:  395:  /* If root is NULL, this where it is to be inserted. */
+    66874:  396:  if (*root == NULL)
+branch  0 taken 25% (fallthrough)
+branch  1 taken 75%
+        -:  397:    {
+    16951:  398:      *root = new_id;
+    16951:  399:      new_id->left = NULL;
+    16951:  400:      new_id->right = NULL;
+    16951:  401:      new_id->balance = 0;
+    16951:  402:      return (TRUE);
+        -:  403:    }
+        -:  404:
+        -:  405:  /* We need to search for a leaf. */
+    49923:  406:  if (strcmp (new_id->id, (*root)->id) < 0)
+branch  0 taken 50% (fallthrough)
+branch  1 taken 50%
+        -:  407:    {
+        -:  408:      /* Insert it on the left. */
+    24945:  409:      if (insert_id_rec (&((*root)->left), new_id))
+call    0 returned 100%
+branch  1 taken 67% (fallthrough)
+branch  2 taken 33%
+        -:  410:	{
+        -:  411:	  /* The height increased. */
+    16598:  412:	  (*root)->balance --;
+        -:  413:	  
+    16598:  414:	  switch ((*root)->balance)
+branch  0 taken 65%
+branch  1 taken 18%
+branch  2 taken 17%
+        -:  415:	    {
+        -:  416:	    case  0:  /* no height increase. */
+        -:  417:	      return (FALSE);
+    10843:  418:	    case -1:  /* height increase. */
+    10843:  419:	      return (TRUE);
+     2913:  420:	    case -2:  /* we need to do a rebalancing act. */
+     2913:  421:	      A = *root;
+     2913:  422:	      B = (*root)->left;
+     2913:  423:	      if (B->balance <= 0)
+branch  0 taken 45% (fallthrough)
+branch  1 taken 55%
+        -:  424:		{
+        -:  425:		  /* Single Rotate. */
+     1324:  426:		  A->left = B->right;
+     1324:  427:		  B->right = A;
+     1324:  428:		  *root = B;
+     1324:  429:		  A->balance = 0;
+     1324:  430:		  B->balance = 0;
+        -:  431:		}
+        -:  432:	      else
+        -:  433:		{
+        -:  434:		  /* Double Rotate. */
+     1589:  435:		  *root = B->right;
+     1589:  436:		  B->right = (*root)->left;
+     1589:  437:		  A->left = (*root)->right;
+     1589:  438:		  (*root)->left = B;
+     1589:  439:		  (*root)->right = A;
+     1589:  440:		  switch ((*root)->balance)
+branch  0 taken 12%
+branch  1 taken 72%
+branch  2 taken 16%
+branch  3 taken 0%
+        -:  441:		    {
+      193:  442:		    case -1:
+      193:  443:		      A->balance = 1;
+      193:  444:		      B->balance = 0;
+      193:  445:		      break;
+     1141:  446:		    case  0:
+     1141:  447:		      A->balance = 0;
+     1141:  448:		      B->balance = 0;
+     1141:  449:		      break;
+      255:  450:		    case  1:
+      255:  451:		      A->balance = 0;
+      255:  452:		      B->balance = -1;
+      255:  453:		      break;
+        -:  454:		    }
+     1589:  455:		  (*root)->balance = 0;
+        -:  456:		}
+        -:  457:	    }     
+        -:  458:	} 
+        -:  459:    }
+        -:  460:  else
+        -:  461:    {
+        -:  462:      /* Insert it on the right. */
+    24978:  463:      if (insert_id_rec (&((*root)->right), new_id))
+call    0 returned 100%
+branch  1 taken 69% (fallthrough)
+branch  2 taken 31%
+        -:  464:	{
+        -:  465:	  /* The height increased. */
+    17123:  466:	  (*root)->balance ++;
+        -:  467:
+    17123:  468:	  switch ((*root)->balance)
+branch  0 taken 68%
+branch  1 taken 18%
+branch  2 taken 15%
+        -:  469:	    {
+        -:  470:	    case 0:  /* no height increase. */
+        -:  471:	      return (FALSE);
+    11598:  472:	    case 1:  /* height increase. */
+    11598:  473:	      return (TRUE);
+     3014:  474:	    case 2:  /* we need to do a rebalancing act. */
+     3014:  475:	      A = *root;
+     3014:  476:	      B = (*root)->right;
+     3014:  477:	      if (B->balance >= 0)
+branch  0 taken 51% (fallthrough)
+branch  1 taken 49%
+        -:  478:		{
+        -:  479:		  /* Single Rotate. */
+     1524:  480:		  A->right = B->left;
+     1524:  481:		  B->left = A;
+     1524:  482:		  *root = B;
+     1524:  483:		  A->balance = 0;
+     1524:  484:		  B->balance = 0;
+        -:  485:		}
+        -:  486:	      else
+        -:  487:		{
+        -:  488:		  /* Double Rotate. */
+     1490:  489:		  *root = B->left;
+     1490:  490:		  B->left = (*root)->right;
+     1490:  491:		  A->right = (*root)->left;
+     1490:  492:		  (*root)->left = A;
+     1490:  493:		  (*root)->right = B;
+     1490:  494:		  switch ((*root)->balance)
+branch  0 taken 17%
+branch  1 taken 66%
+branch  2 taken 17%
+branch  3 taken 0%
+        -:  495:		    {
+      258:  496:		    case -1:
+      258:  497:		      A->balance = 0;
+      258:  498:		      B->balance = 1;
+      258:  499:		      break;
+      978:  500:		    case  0:
+      978:  501:		      A->balance = 0;
+      978:  502:		      B->balance = 0;
+      978:  503:		      break;
+      254:  504:		    case  1:
+      254:  505:		      A->balance = -1;
+      254:  506:		      B->balance = 0;
+      254:  507:		      break;
+        -:  508:		    }
+     1490:  509:		  (*root)->balance = 0;
+        -:  510:		}
+        -:  511:	    }     
+        -:  512:	} 
+        -:  513:    }
+        -:  514:  
+        -:  515:  /* If we fall through to here, the tree did not grow in height. */
+        -:  516:  return (FALSE);
+        -:  517:}
+        -:  518:
+        -:  519:
+        -:  520:/* Initialize variables for the symbol table tree. */
+        -:  521:
+        -:  522:void
+function init_tree called 2083 returned 100% blocks executed 100%
+     2083:  523:init_tree(void)
+        -:  524:{
+     2083:  525:  name_tree  = NULL;
+     2083:  526:  next_array = 1;
+     2083:  527:  next_func  = 1;
+        -:  528:  /* 0 => ibase, 1 => obase, 2 => scale, 3 => history, 4 => last. */
+     2083:  529:  next_var   = 5;
+     2083:  530:}
+        -:  531:
+        -:  532:
+        -:  533:/* Lookup routines for symbol table names. */
+        -:  534:
+        -:  535:int
+function lookup called 235466 returned 100% blocks executed 67%
+   235466:  536:lookup (char *name, int  namekind)
+        -:  537:{
+   235466:  538:  id_rec *id;
+        -:  539:
+        -:  540:  /* Warn about non-standard name. */
+   235466:  541:  if (strlen(name) != 1)
+branch  0 taken 57% (fallthrough)
+branch  1 taken 43%
+   133726:  542:    ct_warn ("multiple letter name - %s", name);
+call    0 returned 100%
+        -:  543:
+        -:  544:  /* Look for the id. */
+   235466:  545:  id = find_id (name_tree, name);
+call    0 returned 100%
+   235466:  546:  if (id == NULL)
+branch  0 taken 7% (fallthrough)
+branch  1 taken 93%
+        -:  547:    {
+        -:  548:      /* We need to make a new item. */
+    16951:  549:      id = bc_malloc (sizeof (id_rec));
+call    0 returned 100%
+    16951:  550:      id->id = strcopyof (name);
+call    0 returned 100%
+    16951:  551:      id->a_name = 0;
+    16951:  552:      id->f_name = 0;
+    16951:  553:      id->v_name = 0;
+    16951:  554:      insert_id_rec (&name_tree, id);
+call    0 returned 100%
+        -:  555:    }
+        -:  556:
+        -:  557:  /* Return the correct value. */
+   235466:  558:  switch (namekind)
+branch  0 taken 9%
+branch  1 taken 2%
+branch  2 taken 89%
+branch  3 taken 0%
+        -:  559:    {
+        -:  560:      
+    21415:  561:    case ARRAY:
+        -:  562:      /* ARRAY variable numbers are returned as negative numbers. */
+    21415:  563:      if (id->a_name != 0)
+branch  0 taken 95% (fallthrough)
+branch  1 taken 5%
+        -:  564:	{
+    20327:  565:	  free (name);
+    20327:  566:	  return (-id->a_name);
+        -:  567:	}
+     1088:  568:      id->a_name = next_array++;
+     1088:  569:      if (id->a_name < MAX_STORE)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -:  570:	{
+     1088:  571:	  if (id->a_name >= a_count)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+    #####:  572:	    more_arrays ();
+call    0 never executed
+     1088:  573:	  a_names[id->a_name] = name;
+     1088:  574:	  return (-id->a_name);
+        -:  575:	}
+    #####:  576:      yyerror ("Too many array variables");
+call    0 never executed
+    #####:  577:      bc_exit (1);
+        -:  578:      /*NOTREACHED*/
+        -:  579:
+     4997:  580:    case FUNCT:
+        -:  581:    case FUNCTDEF:
+     4997:  582:      if (id->f_name != 0)
+branch  0 taken 92% (fallthrough)
+branch  1 taken 8%
+        -:  583:	{
+     4601:  584:          free(name);
+        -:  585:	  /* Check to see if we are redefining a math lib function. */ 
+    4601*:  586:	  if (use_math && namekind == FUNCTDEF && id->f_name <= 6)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+branch  2 never executed
+branch  3 never executed
+branch  4 never executed
+branch  5 never executed
+    #####:  587:	    id->f_name = next_func++;
+     4601:  588:	  return (id->f_name);
+        -:  589:	}
+      396:  590:      id->f_name = next_func++;
+      396:  591:      if (id->f_name < MAX_STORE)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -:  592:	{
+      396:  593:	  if (id->f_name >= f_count)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+    #####:  594:	    more_functions ();
+call    0 never executed
+      396:  595:          f_names[id->f_name] = name;
+      396:  596:	  return (id->f_name);
+        -:  597:	}
+    #####:  598:      yyerror ("Too many functions");
+call    0 never executed
+    #####:  599:      bc_exit (1);
+        -:  600:      /*NOTREACHED*/
+        -:  601:
+   209054:  602:    case SIMPLE:
+   209054:  603:      if (id->v_name != 0)
+branch  0 taken 92% (fallthrough)
+branch  1 taken 8%
+        -:  604:	{
+   192892:  605:	  free(name);
+   192892:  606:	  return (id->v_name);
+        -:  607:	}
+    16162:  608:      id->v_name = next_var++;
+    16162:  609:      if (id->v_name <= MAX_STORE)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -:  610:	{
+    16162:  611:	  if (id->v_name >= v_count)
+branch  0 taken 1% (fallthrough)
+branch  1 taken 99%
+      206:  612:	    more_variables ();
+call    0 returned 100%
+    16162:  613:          v_names[id->v_name - 1] = name;
+    16162:  614:	  return (id->v_name);
+        -:  615:	}
+    #####:  616:      yyerror ("Too many variables");
+call    0 never executed
+    #####:  617:      bc_exit (1);
+        -:  618:      /*NOTREACHED*/
+        -:  619:
+        -:  620:    }
+        -:  621:
+    #####:  622:  yyerror ("End of util.c/lookup() reached.  Please report this bug.");
+call    0 never executed
+    #####:  623:  bc_exit (1);
+        -:  624:  /*NOTREACHED*/
+        -:  625:  return 0;
+        -:  626:}
+        -:  627:
+        -:  628:/* Print out the limits of this program. */
+        -:  629:
+        -:  630:void
+function limits called 0 returned 0% blocks executed 0%
+    #####:  631:limits(void)
+        -:  632:{
+    #####:  633:  printf ("BC_BASE_MAX     = %d\n",  BC_BASE_MAX);
+call    0 never executed
+    #####:  634:  printf ("BC_DIM_MAX      = %ld\n", (long) BC_DIM_MAX);
+call    0 never executed
+    #####:  635:  printf ("BC_SCALE_MAX    = %d\n",  BC_SCALE_MAX);
+call    0 never executed
+    #####:  636:  printf ("BC_STRING_MAX   = %d\n",  BC_STRING_MAX);
+call    0 never executed
+    #####:  637:  printf ("MAX Exponent    = %ld\n", (long) LONG_MAX);
+call    0 never executed
+    #####:  638:  printf ("Number of vars  = %ld\n", (long) MAX_STORE);
+call    0 never executed
+        -:  639:#ifdef OLD_EQ_OP
+        -:  640:  printf ("Old assignment operatiors are valid. (=-, =+, ...)\n");
+        -:  641:#endif 
+    #####:  642:}
+        -:  643:
+        -:  644:/* bc_malloc will check the return value so all other places do not
+        -:  645:   have to do it!  SIZE is the number of bytes to allocate. */
+        -:  646:
+        -:  647:void *
+function bc_malloc called 1140587 returned 100% blocks executed 67%
+  1140587:  648:bc_malloc (size_t size)
+        -:  649:{
+  1140587:  650:  void *ptr;
+        -:  651:
+  1140587:  652:  ptr = (void *) malloc (size);
+  1140587:  653:  if (ptr == NULL)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+    #####:  654:    out_of_memory ();
+call    0 never executed
+        -:  655:
+  1140587:  656:  return ptr;
+        -:  657:}
+        -:  658:
+        -:  659:
+        -:  660:/* The following routines are error routines for various problems. */
+        -:  661:
+        -:  662:/* Malloc could not get enought memory. */
+        -:  663:
+        -:  664:void
+function out_of_memory called 0 returned 0% blocks executed 0%
+    #####:  665:out_of_memory(void)
+        -:  666:{
+    #####:  667:  fprintf (stderr, "Fatal error: Out of memory for malloc.\n");
+call    0 never executed
+    #####:  668:  bc_exit (1);
+        -:  669:  /*NOTREACHED*/
+        -:  670:}
+        -:  671:
+        -:  672:
+        -:  673:
+        -:  674:/* The standard yyerror routine.  Built with variable number of argumnets. */
+        -:  675:
+        -:  676:#ifndef VARARGS
+        -:  677:#ifdef __STDC__
+        -:  678:void
+function yyerror called 341448 returned 100% blocks executed 83%
+   341448:  679:yyerror (const char *str, ...)
+        -:  680:#else
+        -:  681:void
+        -:  682:yyerror (str)
+        -:  683:     const char *str;
+        -:  684:#endif
+        -:  685:#else
+        -:  686:void
+        -:  687:yyerror (str, va_alist)
+        -:  688:     const char *str;
+        -:  689:#endif
+        -:  690:{
+   341448:  691:  const char *name;
+   341448:  692:  va_list args;
+        -:  693:
+        -:  694:#ifndef VARARGS   
+   341448:  695:   va_start (args, str);
+        -:  696:#else
+        -:  697:   va_start (args);
+        -:  698:#endif
+   341448:  699:  if (is_std_in)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  700:    name = "(standard_in)";
+        -:  701:  else
+    #####:  702:    name = file_name;
+   341448:  703:  fprintf (stderr,"%s %d: ",name,line_no);
+call    0 returned 100%
+   341448:  704:  vfprintf (stderr, str, args);
+call    0 returned 100%
+   341448:  705:  fprintf (stderr, "\n");
+call    0 returned 100%
+   341448:  706:  had_error = TRUE;
+   341448:  707:  va_end (args);
+   341448:  708:}
+        -:  709:
+        -:  710:
+        -:  711:/* The routine to produce warnings about non-standard features
+        -:  712:   found during parsing. */
+        -:  713:
+        -:  714:#ifndef VARARGS
+        -:  715:#ifdef __STDC__
+        -:  716:void 
+function ct_warn called 224485 returned 100% blocks executed 21%
+   224485:  717:ct_warn (const char *mesg, ...)
+        -:  718:#else
+        -:  719:void
+        -:  720:ct_warn (mesg)
+        -:  721:     const char *mesg;
+        -:  722:#endif
+        -:  723:#else
+        -:  724:void
+        -:  725:ct_warn (mesg, va_alist)
+        -:  726:     const char *mesg;
+        -:  727:#endif
+        -:  728:{
+   224485:  729:  const char *name;
+   224485:  730:  va_list args;
+        -:  731:
+        -:  732:#ifndef VARARGS   
+   224485:  733:  va_start (args, mesg);
+        -:  734:#else
+        -:  735:  va_start (args);
+        -:  736:#endif
+   224485:  737:  if (std_only)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  738:    {
+    #####:  739:      if (is_std_in)
+branch  0 never executed
+branch  1 never executed
+        -:  740:	name = "(standard_in)";
+        -:  741:      else
+    #####:  742:	name = file_name;
+    #####:  743:      fprintf (stderr,"%s %d: Error: ",name,line_no);
+call    0 never executed
+    #####:  744:      vfprintf (stderr, mesg, args);
+call    0 never executed
+    #####:  745:      fprintf (stderr, "\n");
+call    0 never executed
+    #####:  746:      had_error = TRUE;
+        -:  747:    }
+        -:  748:  else
+   224485:  749:    if (warn_not_std)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  750:      {
+    #####:  751:	if (is_std_in)
+branch  0 never executed
+branch  1 never executed
+        -:  752:	  name = "(standard_in)";
+        -:  753:	else
+    #####:  754:	  name = file_name;
+    #####:  755:	fprintf (stderr,"%s %d: (Warning) ",name,line_no);
+call    0 never executed
+    #####:  756:	vfprintf (stderr, mesg, args);
+call    0 never executed
+    #####:  757:	fprintf (stderr, "\n");
+call    0 never executed
+        -:  758:      }
+   224485:  759:  va_end (args);
+   224485:  760:}
+        -:  761:
+        -:  762:/* Runtime error will  print a message and stop the machine. */
+        -:  763:
+        -:  764:#ifndef VARARGS
+        -:  765:#ifdef __STDC__
+        -:  766:void
+function rt_error called 4707 returned 100% blocks executed 100%
+     4707:  767:rt_error (const char *mesg, ...)
+        -:  768:#else
+        -:  769:void
+        -:  770:rt_error (mesg)
+        -:  771:     const char *mesg;
+        -:  772:#endif
+        -:  773:#else
+        -:  774:void
+        -:  775:rt_error (mesg, va_alist)
+        -:  776:     const char *mesg;
+        -:  777:#endif
+        -:  778:{
+     4707:  779:  va_list args;
+        -:  780:
+     9414:  781:  fprintf (stderr, "Runtime error (func=%s, adr=%d): ",
+     4707:  782:	   f_names[pc.pc_func], pc.pc_addr);
+call    0 returned 100%
+        -:  783:#ifndef VARARGS   
+     4707:  784:  va_start (args, mesg);
+        -:  785:#else
+        -:  786:  va_start (args);
+        -:  787:#endif
+     4707:  788:  vfprintf (stderr, mesg, args);
+call    0 returned 100%
+     4707:  789:  va_end (args);
+        -:  790:  
+     4707:  791:  fprintf (stderr, "\n");
+call    0 returned 100%
+     4707:  792:  runtime_error = TRUE;
+     4707:  793:}
+        -:  794:
+        -:  795:
+        -:  796:/* A runtime warning tells of some action taken by the processor that
+        -:  797:   may change the program execution but was not enough of a problem
+        -:  798:   to stop the execution. */
+        -:  799:
+        -:  800:#ifndef VARARGS
+        -:  801:#ifdef __STDC__
+        -:  802:void
+function rt_warn called 2951 returned 100% blocks executed 100%
+     2951:  803:rt_warn (const char *mesg, ...)
+        -:  804:#else
+        -:  805:void
+        -:  806:rt_warn (const char *mesg)
+        -:  807:#endif
+        -:  808:#else
+        -:  809:void
+        -:  810:rt_warn (const char *mesg)
+        -:  811:#endif
+        -:  812:{
+     2951:  813:  va_list args;
+        -:  814:
+     5902:  815:  fprintf (stderr, "Runtime warning (func=%s, adr=%d): ",
+     2951:  816:	   f_names[pc.pc_func], pc.pc_addr);
+call    0 returned 100%
+        -:  817:#ifndef VARARGS   
+     2951:  818:  va_start (args, mesg);
+        -:  819:#else
+        -:  820:  va_start (args);
+        -:  821:#endif
+     2951:  822:  vfprintf (stderr, mesg, args);
+call    0 returned 100%
+     2951:  823:  va_end (args);
+        -:  824:
+     2951:  825:  fprintf (stderr, "\n");
+call    0 returned 100%
+     2951:  826:}
+        -:  827:
+        -:  828:/* bc_exit: Make sure to reset the edit state. */
+        -:  829:
+function bc_exit called 2083 returned 0% blocks executed 100%
+    2083*:  830:void bc_exit(int val)
+        -:  831:{
+        -:  832:#if defined(LIBEDIT)
+        -:  833:  if (edit != NULL)
+        -:  834:    el_end(edit);
+        -:  835:#endif
+    #####:  836:  exit(val);
+call    0 never executed
+call    1 never executed
+call    2 never executed
+call    3 never executed
+        -:  837:  /*NOTREACHED*/
+        -:  838:}

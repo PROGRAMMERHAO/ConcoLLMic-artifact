@@ -1,0 +1,17 @@
+mode: directed
+targets:
+- file_path: krep.c
+  line_start: 1556
+  line_end: 1556
+  reached: true
+  reached_by_tc_id: 1
+  reached_at_time: 393.3967092037201
+progress:
+  distance_history:
+  - !!python/tuple
+    - 1
+    - 0
+  best_distance: 0
+  stall_counter: 0
+  current_strategy: directed
+call_graph_size: 40

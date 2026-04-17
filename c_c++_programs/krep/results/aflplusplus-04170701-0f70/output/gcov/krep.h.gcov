@@ -1,0 +1,324 @@
+        -:    0:Source:krep.h
+        -:    0:Graph:./krep.gcno
+        -:    0:Data:./krep.gcda
+        -:    0:Runs:71
+        -:    1:/* krep.h - Header file for krep utility (Optimized Version)
+        -:    2: *
+        -:    3: * Author: Davide Santangelo
+        -:    4: * Year: 2025
+        -:    5: */
+        -:    6:
+        -:    7:#ifndef KREP_H
+        -:    8:#define KREP_H
+        -:    9:
+        -:   10:#include <stdbool.h>
+        -:   11:#include <stdint.h>
+        -:   12:#include <stdio.h>     // For size_t definition
+        -:   13:#include <regex.h>     // For regex_t type
+        -:   14:#include <pthread.h>   // For mutex types (though no longer used for counting)
+        -:   15:#include <stdatomic.h> // For atomic types used in structs
+        -:   16:#include <ctype.h>     // For isalnum function
+        -:   17:
+        -:   18:// --- Global Variables (declared extern) ---
+        -:   19:extern unsigned char lower_table[256];
+        -:   20:
+        -:   21:// Forward declaration for Aho-Corasick trie structure
+        -:   22:struct ac_trie;
+        -:   23:typedef struct ac_trie ac_trie_t;
+        -:   24:
+        -:   25:/* --- Compiler-specific macros --- */
+        -:   26:#ifdef __GNUC__
+        -:   27:#define KREP_UNUSED __attribute__((unused))
+        -:   28:#else
+        -:   29:#define KREP_UNUSED
+        -:   30:#endif
+        -:   31:
+        -:   32:/* --- ANSI Color Codes --- */
+        -:   33:// Define colors consistently
+        -:   34:#define KREP_COLOR_RESET "\033[0m"
+        -:   35:#define KREP_COLOR_FILENAME "\033[1;35m"  // Magenta
+        -:   36:#define KREP_COLOR_SEPARATOR "\033[1;90m" // Bright Black (Gray)
+        -:   37:#define KREP_COLOR_MATCH "\033[1;31m"     // Bright Red
+        -:   38:#define KREP_COLOR_TEXT "\033[0m"         // Default terminal text color
+        -:   39:
+        -:   40:/* --- Match tracking structure --- */
+        -:   41:// Define match_position_t BEFORE match_result_t
+        -:   42:typedef struct
+        -:   43:{
+        -:   44:   size_t start_offset; // Starting position of the match
+        -:   45:   size_t end_offset;   // Ending position of the match (exclusive)
+        -:   46:} match_position_t;
+        -:   47:
+        -:   48:typedef struct match_result_t // Add the struct tag here
+        -:   49:{
+        -:   50:   match_position_t *positions; // Dynamically resizing array of match positions
+        -:   51:   uint64_t count;              // Number of matches found and stored
+        -:   52:   uint64_t capacity;           // Current allocated capacity of the positions array
+        -:   53:} match_result_t;               // Typedef remains the same
+        -:   54:
+        -:   55:/* --- Structures for Multithreading --- */
+        -:   56:
+        -:   57:// Parameters shared across search functions and threads
+        -:   58:typedef struct search_params
+        -:   59:{
+        -:   60:   // Single pattern legacy fields (still used by some functions)
+        -:   61:   const char *pattern;
+        -:   62:   size_t pattern_len;
+        -:   63:
+        -:   64:   // Multiple pattern fields
+        -:   65:   const char **patterns; // Array of patterns (for multiple -e options)
+        -:   66:   size_t *pattern_lens;  // Array of pattern lengths
+        -:   67:   size_t num_patterns;   // Number of patterns
+        -:   68:
+        -:   69:   // Search options
+        -:   70:   bool case_sensitive;
+        -:   71:   bool use_regex;
+        -:   72:   bool count_lines_mode;   // True for -c mode (count lines)
+        -:   73:   bool count_matches_mode; // True for -co mode (count matches - internal concept)
+        -:   74:   bool track_positions;    // True for default or -o mode (track positions)
+        -:   75:   bool whole_word;         // True for -w mode (whole word search)
+        -:   76:   // bool overlapping_mode; // Implicitly true for -o, handled by algorithm advance logic
+        -:   77:
+        -:   78:   // Compiled regex (if applicable, compiled once per file/string)
+        -:   79:   const regex_t *compiled_regex;
+        -:   80:
+        -:   81:   // Compiled Aho-Corasick trie (if applicable)
+        -:   82:   ac_trie_t *ac_trie; // Add pointer for pre-built trie
+        -:   83:
+        -:   84:   // Max count limit from options
+        -:   85:   size_t max_count;
+        -:   86:
+        -:   87:} search_params_t;
+        -:   88:
+        -:   89:// Data passed to each search thread
+        -:   90:typedef struct
+        -:   91:{
+        -:   92:   int thread_id;
+        -:   93:   const search_params_t *params; // Pointer to shared search parameters
+        -:   94:   const char *chunk_start;       // Pointer to the start of the memory chunk for this thread
+        -:   95:   size_t chunk_len;              // Length of the chunk to process (may include overlap)
+        -:   96:
+        -:   97:   // Thread-specific results
+        -:   98:   match_result_t *local_result; // For position tracking (default/-o)
+        -:   99:   uint64_t count_result;        // For line counting (-c) or match counting (-co)
+        -:  100:
+        -:  101:   // Status flags
+        -:  102:   bool error_flag; // Flag to indicate an error occurred in the thread
+        -:  103:} thread_data_t;
+        -:  104:
+        -:  105:/* --- Thread Pool Implementation --- */
+        -:  106:typedef struct task
+        -:  107:{
+        -:  108:   void *(*func)(void *); // Task function
+        -:  109:   void *arg;             // Function argument
+        -:  110:   struct task *next;     // Next task in queue
+        -:  111:} task_t;
+        -:  112:
+        -:  113:typedef struct
+        -:  114:{
+        -:  115:   pthread_t *threads;           // Array of worker threads
+        -:  116:   int num_threads;              // Number of worker threads
+        -:  117:   task_t *task_queue;           // Task queue head
+        -:  118:   task_t *task_queue_tail;      // Task queue tail for faster enqueue
+        -:  119:   pthread_mutex_t queue_mutex;  // Mutex for task queue access
+        -:  120:   pthread_cond_t queue_cond;    // Condition variable for task availability
+        -:  121:   pthread_cond_t complete_cond; // Condition variable for task completion
+        -:  122:   size_t working_threads;       // Counter for busy threads
+        -:  123:   atomic_bool shutdown;         // Shutdown flag
+        -:  124:} thread_pool_t;
+        -:  125:
+        -:  126:/* --- Thread Pool API --- */
+        -:  127:thread_pool_t *thread_pool_init(int num_threads);
+        -:  128:bool thread_pool_submit(thread_pool_t *pool, void *(*func)(void *), void *arg);
+        -:  129:void thread_pool_wait_all(thread_pool_t *pool);
+        -:  130:void thread_pool_destroy(thread_pool_t *pool);
+        -:  131:
+        -:  132:/* --- Function Pointer Type for Search Algorithms --- */
+        -:  133:// Updated signature: Returns count (lines or matches depending on mode).
+        -:  134:// Takes match_result_t only if track_positions is true.
+        -:  135:typedef uint64_t (*search_func_t)(const search_params_t *params,
+        -:  136:                                  const char *text_start,
+        -:  137:                                  size_t text_len,
+        -:  138:                                  match_result_t *result); // For position tracking (can be NULL)
+        -:  139:
+        -:  140:/* --- Public API --- */
+        -:  141:
+        -:  142:/**
+        -:  143: * @brief Searches a single file for the given pattern(s). Handles multithreading.
+        -:  144: *
+        -:  145: * @param params Search parameters including patterns and options.
+        -:  146: * @param filename Path to the file, or "-" for stdin.
+        -:  147: * @param requested_thread_count Number of threads requested by user (0 for auto).
+        -:  148: * @return 0 if matches found, 1 if no matches found, 2 on error.
+        -:  149: */
+        -:  150:int search_file(const search_params_t *params, const char *filename, int requested_thread_count);
+        -:  151:
+        -:  152:/**
+        -:  153: * @brief Searches a string in memory for the given pattern(s) (single-threaded).
+        -:  154: *
+        -:  155: * @param params Search parameters including patterns and options.
+        -:  156: * @param text The string to search within.
+        -:  157: * @return 0 if matches found, 1 if no matches found, 2 on error.
+        -:  158: */
+        -:  159:int search_string(const search_params_t *params, const char *text);
+        -:  160:
+        -:  161:/**
+        -:  162: * @brief Recursively searches a directory for the given pattern(s).
+        -:  163: *
+        -:  164: * @param base_dir The starting directory path.
+        -:  165: * @param params Search parameters including patterns and options.
+        -:  166: * @param thread_count Number of threads to use within file searches.
+        -:  167: * @return The total number of errors encountered during the recursive search.
+        -:  168: */
+        -:  169:int search_directory_recursive(const char *base_dir, const search_params_t *params, int thread_count);
+        -:  170:
+        -:  171:/* --- Match result management functions --- */
+        -:  172:match_result_t *match_result_init(uint64_t initial_capacity);
+        -:  173:bool match_result_add(match_result_t *result, size_t start_offset, size_t end_offset);
+        -:  174:void match_result_free(match_result_t *result);
+        -:  175:bool match_result_merge(match_result_t *dest, const match_result_t *src, size_t chunk_offset);
+        -:  176:
+        -:  177:/**
+        -:  178: * @brief Prints matching lines or parts based on the provided results and parameters.
+        -:  179: *
+        -:  180: * Handles color highlighting, line numbering, and the '-o' (only matching) option.
+        -:  181: *
+        -:  182: * @param filename The name of the file being searched (or NULL for stdin/string).
+        -:  183: * @param text The full text content.
+        -:  184: * @param text_len The length of the text content.
+        -:  185: * @param result A pointer to the match_result_t structure containing match positions.
+        -:  186: * @param params A pointer to the search parameters, including max_count.
+        -:  187: * @return The number of items (lines or matches) printed.
+        -:  188: */
+        -:  189:size_t print_matching_items(const char *filename, const char *text, size_t text_len, const match_result_t *result, const search_params_t *params);
+        -:  190:
+        -:  191:// Print usage information
+        -:  192:void print_usage(const char *program_name);
+        -:  193:
+        -:  194:/* --- Internal Search Algorithm Declarations (Updated Signature) --- */
+        -:  195:
+        -:  196:uint64_t boyer_moore_search(const search_params_t *params, const char *text_start, size_t text_len, match_result_t *result);
+        -:  197:uint64_t kmp_search(const search_params_t *params, const char *text_start, size_t text_len, match_result_t *result);
+        -:  198:uint64_t regex_search(const search_params_t *params, const char *text_start, size_t text_len, match_result_t *result);
+        -:  199:uint64_t memchr_search(const search_params_t *params, const char *text_start, size_t text_len, match_result_t *result);
+        -:  200:uint64_t memchr_short_search(const search_params_t *params, const char *text_start, size_t text_len, match_result_t *result); // New function for short patterns
+        -:  201:
+        -:  202:// SIMD functions (only declared if supported by compiler flags)
+        -:  203:#if defined(__SSE4_2__)
+        -:  204:uint64_t simd_sse42_search(const search_params_t *params, const char *text_start, size_t text_len, match_result_t *result);
+        -:  205:#endif
+        -:  206:
+        -:  207:#if defined(__AVX2__)
+        -:  208:uint64_t simd_avx2_search(const search_params_t *params, const char *text_start, size_t text_len, match_result_t *result);
+        -:  209:#endif
+        -:  210:
+        -:  211:#if defined(__ARM_NEON)
+        -:  212:uint64_t neon_search(const search_params_t *params, const char *text_start, size_t text_len, match_result_t *result);
+        -:  213:#endif
+        -:  214:
+        -:  215:/* --- Helper Functions --- */
+        -:  216:bool memory_equals_case_insensitive(const unsigned char *s1, const unsigned char *s2, size_t n);
+        -:  217:void prepare_bad_char_table(const unsigned char *pattern, size_t pattern_len, int *bad_char_table, bool case_sensitive);
+        -:  218:search_func_t select_search_algorithm(const search_params_t *params);
+        -:  219:const char *get_algorithm_name(search_func_t func);
+        -:  220:
+        -:  221:/* --- Skip Lists for Recursive Search --- */
+        -:  222:// Defined here so they are accessible by search_directory_recursive in krep.c
+        -:  223:static const char *skip_directories[] = {
+        -:  224:    ".", "..", ".git", "node_modules", ".svn", ".hg", "build", "dist",
+        -:  225:    "__pycache__", ".pytest_cache", ".mypy_cache", ".venv", ".env", "venv", "env",
+        -:  226:    "target", "bin", "obj"
+        -:  227:    // Add more common build/dependency directories if needed
+        -:  228:};
+        -:  229:static const size_t num_skip_directories = sizeof(skip_directories) / sizeof(skip_directories[0]);
+        -:  230:
+        -:  231:static const char *skip_extensions[] = {
+        -:  232:    // Object files, libraries, executables
+        -:  233:    ".o", ".so", ".a", ".dll", ".exe", ".lib", ".dylib", ".class", ".pyc", ".pyo", ".obj", ".elf", ".wasm",
+        -:  234:    // Archives
+        -:  235:    ".zip", ".tar", ".gz", ".bz2", ".xz", ".rar", ".7z", ".jar", ".war", ".ear", ".iso", ".img", ".pkg", ".deb", ".rpm",
+        -:  236:    // Images
+        -:  237:    ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp", ".svg", ".ico", ".psd", ".ai",
+        -:  238:    // Audio/Video
+        -:  239:    ".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a", ".mp4", ".avi", ".mkv", ".mov", ".wmv", ".flv",
+        -:  240:    // Documents
+        -:  241:    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".odt", ".ods", ".odp",
+        -:  242:    // Data/Logs/Backups
+        -:  243:    ".dat", ".bin", ".bak", ".log", ".tmp", ".temp",
+        -:  244:    // Minified assets (check for .min.js etc. handled separately in should_skip_extension)
+        -:  245:    // Editor/System files
+        -:  246:    ".swp", ".swo", ".DS_Store",
+        -:  247:    // Databases
+        -:  248:    ".db", ".sqlite", ".mdb",
+        -:  249:    // Fonts
+        -:  250:    ".ttf", ".otf", ".woff", ".woff2", ".eot"};
+        -:  251:static const size_t num_skip_extensions = sizeof(skip_extensions) / sizeof(skip_extensions[0]);
+        -:  252:
+        -:  253:/* --- Line Finding Functions --- */
+        -:  254:
+        -:  255:/**
+        -:  256: * @brief Find the start of the line containing the given position.
+        -:  257: *
+        -:  258: * @param text Pointer to the text buffer.
+        -:  259: * @param max_len Maximum length of the text buffer.
+        -:  260: * @param pos Position within the text to find the containing line start.
+        -:  261: * @return Position of the start of the line.
+        -:  262: */
+        -:  263:size_t find_line_start(const char *text, size_t max_len, size_t pos);
+        -:  264:
+        -:  265:/**
+        -:  266: * @brief Find the end of the line containing the given position.
+        -:  267: *
+        -:  268: * @param text Pointer to the text buffer.
+        -:  269: * @param text_len Length of the text buffer.
+        -:  270: * @param pos Position within the text to find the containing line end.
+        -:  271: * @return Position of the end of the line (index of the newline or text length).
+        -:  272: */
+        -:  273:size_t find_line_end(const char *text, size_t text_len, size_t pos);
+        -:  274:
+        -:  275:/* --- Word Character and Whole Word Match Helpers --- */
+        -:  276:
+        -:  277:/**
+        -:  278: * @brief Check if a character is a word character (alnum or _).
+        -:  279: *
+        -:  280: * @param c The character to check.
+        -:  281: * @return True if the character is a word character, false otherwise.
+        -:  282: */
+function is_word_char called 0 returned 0% blocks executed 0%
+    #####:  283:static inline bool is_word_char(char c)
+        -:  284:{
+    #####:  285:   return (isalnum((unsigned char)c) || c == '_');
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  286:}
+        -:  287:
+        -:  288:/**
+        -:  289: * @brief Check if a match is a whole word.
+        -:  290: *
+        -:  291: * @param text Pointer to the text buffer.
+        -:  292: * @param text_len Length of the text buffer.
+        -:  293: * @param start Start position of the match.
+        -:  294: * @param end End position of the match.
+        -:  295: * @return True if the match is a whole word, false otherwise.
+        -:  296: */
+function is_whole_word_match called 0 returned 0% blocks executed 0%
+    #####:  297:static inline bool is_whole_word_match(const char *text, size_t text_len, size_t start, size_t end)
+        -:  298:{
+    #####:  299:   if (start > 0 && is_word_char(text[start - 1]))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  300:      return false;
+    #####:  301:   if (end < text_len && is_word_char(text[end]))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+    #####:  302:      return false;
+        -:  303:   return true;
+        -:  304:}
+        -:  305:
+        -:  306:#endif /* KREP_H */

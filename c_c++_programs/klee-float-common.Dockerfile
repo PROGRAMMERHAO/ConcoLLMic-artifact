@@ -1,6 +1,8 @@
 FROM ubuntu:16.04
 ENV DEBIAN_FRONTEND=noninteractive
 
+RUN sed -i 's|http://archive.ubuntu.com|http://mirrors.aliyun.com|g; s|http://security.ubuntu.com|http://mirrors.aliyun.com|g' /etc/apt/sources.list
+
 # Install dependencies
 RUN apt-get update && apt-get install -y \
         gcc-4.9 g++-4.9 \

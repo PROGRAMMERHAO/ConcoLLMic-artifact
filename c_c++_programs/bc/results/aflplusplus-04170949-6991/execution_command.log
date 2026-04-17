@@ -1,0 +1,3 @@
+Executing command: /run.sh aflplusplus 3600
+Start time: Fri Apr 17 09:49:29 UTC 2026
+afl-fuzz -i /shared/aflplusplus-04170949-6991/input -o /shared/aflplusplus-04170949-6991/output /bc-aflplusplus/bc/bc 

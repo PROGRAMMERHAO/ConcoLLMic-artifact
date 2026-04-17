@@ -1,0 +1,7 @@
+Time,id,cost,crashes,hangs,internal_lines_covered,internal_target_reached,l_per,l_abs,b_per,b_abs,target_really_reached
+0,0,0.0,0,0,710,True,22.3,296,14.2,177,True
+208,1,0.3393285,0,0,869,True,26.3,349,16.9,211,False
+259,2,0.4407057,0,0,869,True,26.3,349,16.9,211,True
+300,3,0.52953705,0,0,891,True,27.1,359,18.3,228,True
+360,4,0.65581545,0,0,891,True,27.1,359,18.3,228,True
+393,5,0.7562376,0,0,907,True,27.7,367,18.9,236,False

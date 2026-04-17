@@ -1,0 +1,510 @@
+Testcase 0 is an initial testcase, skipping...
+--- Testcase 1 usage --- 
+TOTAL:
+  model: claude-sonnet-4-5-20250929
+  cost: $0.33932850
+  call_cnt: 9
+  latency: 181.03s
+  input_tokens: 238943
+  output_tokens: 8902
+  cache_read_tokens: 200065
+  cache_write_tokens: 38860
+SELECT:
+  TOTAL: {}
+SUMMARIZE:
+  TOTAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.31765530
+    call_cnt: 7
+    latency: 162.00s
+    input_tokens: 230439
+    output_tokens: 7919
+    cache_read_tokens: 192831
+    cache_write_tokens: 37596
+  INITIAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.11026350
+    call_cnt: 0
+    latency: 0.00s
+    input_tokens: 0
+    output_tokens: 0
+    cache_read_tokens: 0
+    cache_write_tokens: 0
+  think:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.15414045
+    call_cnt: 3
+    latency: 130.30s
+    input_tokens: 93035
+    output_tokens: 6721
+    cache_read_tokens: 62609
+    cache_write_tokens: 30420
+  request_code:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.02502720
+    call_cnt: 2
+    latency: 6.03s
+    input_tokens: 62615
+    output_tokens: 161
+    cache_read_tokens: 60324
+    cache_write_tokens: 2285
+  select_target_branch:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.01748415
+    call_cnt: 1
+    latency: 6.62s
+    input_tokens: 37193
+    output_tokens: 321
+    cache_read_tokens: 32705
+    cache_write_tokens: 4488
+  generate_path_constraint:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.01074000
+    call_cnt: 1
+    latency: 19.05s
+    input_tokens: 37596
+    output_tokens: 716
+    cache_read_tokens: 37193
+    cache_write_tokens: 403
+SOLVE:
+  TOTAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.02167320
+    call_cnt: 2
+    latency: 19.03s
+    input_tokens: 8504
+    output_tokens: 983
+    cache_read_tokens: 7234
+    cache_write_tokens: 1264
+  INITIAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.00376230
+    call_cnt: 0
+    latency: 0.00s
+    input_tokens: 0
+    output_tokens: 0
+    cache_read_tokens: 0
+    cache_write_tokens: 0
+  think:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.01077090
+    call_cnt: 1
+    latency: 10.08s
+    input_tokens: 3990
+    output_tokens: 507
+    cache_read_tokens: 3246
+    cache_write_tokens: 742
+  provide_solution:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.00714000
+    call_cnt: 1
+    latency: 8.94s
+    input_tokens: 4514
+    output_tokens: 476
+    cache_read_tokens: 3988
+    cache_write_tokens: 522
+EXECUTE:
+  TOTAL: {}
+
+--- Testcase 2 usage --- 
+TOTAL:
+  model: claude-sonnet-4-5-20250929
+  cost: $0.10137720
+  call_cnt: 5
+  latency: 68.04s
+  input_tokens: 126989
+  output_tokens: 3345
+  cache_read_tokens: 123189
+  cache_write_tokens: 3794
+SUMMARIZE:
+  TOTAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.08092260
+    call_cnt: 3
+    latency: 50.03s
+    input_tokens: 118555
+    output_tokens: 2417
+    cache_read_tokens: 115917
+    cache_write_tokens: 2638
+  generate_path_constraint:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.02468880
+    call_cnt: 1
+    latency: 13.15s
+    input_tokens: 40234
+    output_tokens: 686
+    cache_read_tokens: 39893
+    cache_write_tokens: 341
+  think:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.03874215
+    call_cnt: 1
+    latency: 29.14s
+    input_tokens: 38428
+    output_tokens: 1448
+    cache_read_tokens: 37596
+    cache_write_tokens: 832
+  select_target_branch:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.01749165
+    call_cnt: 1
+    latency: 7.74s
+    input_tokens: 39893
+    output_tokens: 283
+    cache_read_tokens: 38428
+    cache_write_tokens: 1465
+SOLVE:
+  TOTAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.02045460
+    call_cnt: 2
+    latency: 18.00s
+    input_tokens: 8434
+    output_tokens: 928
+    cache_read_tokens: 7272
+    cache_write_tokens: 1156
+  INITIAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.00341520
+    call_cnt: 0
+    latency: 0.00s
+    input_tokens: 0
+    output_tokens: 0
+    cache_read_tokens: 0
+    cache_write_tokens: 0
+  think:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.01057440
+    call_cnt: 1
+    latency: 9.28s
+    input_tokens: 3960
+    output_tokens: 497
+    cache_read_tokens: 3314
+    cache_write_tokens: 644
+  provide_solution:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.00646500
+    call_cnt: 1
+    latency: 8.73s
+    input_tokens: 4474
+    output_tokens: 431
+    cache_read_tokens: 3958
+    cache_write_tokens: 512
+EXECUTE:
+  TOTAL: {}
+
+--- Testcase 3 usage --- 
+TOTAL:
+  model: claude-sonnet-4-5-20250929
+  cost: $0.08883135
+  call_cnt: 5
+  latency: 52.85s
+  input_tokens: 133238
+  output_tokens: 2572
+  cache_read_tokens: 130257
+  cache_write_tokens: 2975
+SUMMARIZE:
+  TOTAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.06903105
+    call_cnt: 3
+    latency: 34.01s
+    input_tokens: 125200
+    output_tokens: 1636
+    cache_read_tokens: 123191
+    cache_write_tokens: 2009
+  generate_path_constraint:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.02218770
+    call_cnt: 1
+    latency: 8.69s
+    input_tokens: 42243
+    output_tokens: 480
+    cache_read_tokens: 41945
+    cache_write_tokens: 298
+  think:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.02954235
+    call_cnt: 1
+    latency: 17.08s
+    input_tokens: 41012
+    output_tokens: 916
+    cache_read_tokens: 40234
+    cache_write_tokens: 778
+  select_target_branch:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.01730100
+    call_cnt: 1
+    latency: 8.24s
+    input_tokens: 41945
+    output_tokens: 240
+    cache_read_tokens: 41012
+    cache_write_tokens: 933
+SOLVE:
+  TOTAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.01980030
+    call_cnt: 2
+    latency: 18.85s
+    input_tokens: 8038
+    output_tokens: 936
+    cache_read_tokens: 7066
+    cache_write_tokens: 966
+  INITIAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.00264270
+    call_cnt: 0
+    latency: 0.00s
+    input_tokens: 0
+    output_tokens: 0
+    cache_read_tokens: 0
+    cache_write_tokens: 0
+  think:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.01081260
+    call_cnt: 1
+    latency: 11.06s
+    input_tokens: 3754
+    output_tokens: 513
+    cache_read_tokens: 3314
+    cache_write_tokens: 438
+  provide_solution:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.00634500
+    call_cnt: 1
+    latency: 7.79s
+    input_tokens: 4284
+    output_tokens: 423
+    cache_read_tokens: 3752
+    cache_write_tokens: 528
+EXECUTE:
+  TOTAL: {}
+
+--- Testcase 4 usage --- 
+TOTAL:
+  model: claude-sonnet-4-5-20250929
+  cost: $0.12627840
+  call_cnt: 5
+  latency: 77.26s
+  input_tokens: 142294
+  output_tokens: 4486
+  cache_read_tokens: 137568
+  cache_write_tokens: 4720
+SUMMARIZE:
+  TOTAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.10274475
+    call_cnt: 3
+    latency: 56.87s
+    input_tokens: 133975
+    output_tokens: 3364
+    cache_read_tokens: 130470
+    cache_write_tokens: 3505
+  generate_path_constraint:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.02249790
+    call_cnt: 1
+    latency: 8.84s
+    input_tokens: 45748
+    output_tokens: 512
+    cache_read_tokens: 45412
+    cache_write_tokens: 336
+  think:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.06128325
+    call_cnt: 1
+    latency: 42.66s
+    input_tokens: 42815
+    output_tokens: 2580
+    cache_read_tokens: 42243
+    cache_write_tokens: 572
+  select_target_branch:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.01896360
+    call_cnt: 1
+    latency: 5.37s
+    input_tokens: 45412
+    output_tokens: 272
+    cache_read_tokens: 42815
+    cache_write_tokens: 2597
+SOLVE:
+  TOTAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.02353365
+    call_cnt: 2
+    latency: 20.39s
+    input_tokens: 8319
+    output_tokens: 1122
+    cache_read_tokens: 7098
+    cache_write_tokens: 1215
+  INITIAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.00276270
+    call_cnt: 0
+    latency: 0.00s
+    input_tokens: 0
+    output_tokens: 0
+    cache_read_tokens: 0
+    cache_write_tokens: 0
+  think:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.01489095
+    call_cnt: 1
+    latency: 13.16s
+    input_tokens: 3786
+    output_tokens: 730
+    cache_read_tokens: 3314
+    cache_write_tokens: 470
+  provide_solution:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.00588000
+    call_cnt: 1
+    latency: 7.23s
+    input_tokens: 4533
+    output_tokens: 392
+    cache_read_tokens: 3784
+    cache_write_tokens: 745
+EXECUTE:
+  TOTAL: {}
+
+--- Testcase 5 usage --- 
+TOTAL:
+  model: claude-sonnet-4-5-20250929
+  cost: $0.10042215
+  call_cnt: 5
+  latency: 56.43s
+  input_tokens: 149781
+  output_tokens: 2972
+  cache_read_tokens: 146618
+  cache_write_tokens: 3157
+SUMMARIZE:
+  TOTAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.07336740
+    call_cnt: 3
+    latency: 33.63s
+    input_tokens: 139943
+    output_tokens: 1814
+    cache_read_tokens: 138733
+    cache_write_tokens: 1210
+  generate_path_constraint:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.03549690
+    call_cnt: 1
+    latency: 21.86s
+    input_tokens: 46958
+    output_tokens: 1299
+    cache_read_tokens: 46627
+    cache_write_tokens: 331
+  think:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.01869615
+    call_cnt: 1
+    latency: 6.01s
+    input_tokens: 46358
+    output_tokens: 252
+    cache_read_tokens: 45748
+    cache_write_tokens: 610
+  select_target_branch:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.01917435
+    call_cnt: 1
+    latency: 5.76s
+    input_tokens: 46627
+    output_tokens: 263
+    cache_read_tokens: 46358
+    cache_write_tokens: 269
+SOLVE:
+  TOTAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.02705475
+    call_cnt: 2
+    latency: 22.79s
+    input_tokens: 9838
+    output_tokens: 1158
+    cache_read_tokens: 7885
+    cache_write_tokens: 1947
+  INITIAL:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.00571395
+    call_cnt: 0
+    latency: 0.00s
+    input_tokens: 0
+    output_tokens: 0
+    cache_read_tokens: 0
+    cache_write_tokens: 0
+  think:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.01409580
+    call_cnt: 1
+    latency: 13.73s
+    input_tokens: 4573
+    output_tokens: 675
+    cache_read_tokens: 3314
+    cache_write_tokens: 1257
+  provide_solution:
+    model: claude-sonnet-4-5-20250929
+    cost: $0.00724500
+    call_cnt: 1
+    latency: 9.07s
+    input_tokens: 5265
+    output_tokens: 483
+    cache_read_tokens: 4571
+    cache_write_tokens: 690
+EXECUTE:
+  TOTAL: {}
+
+==================================================
+Overall usage of 5 finished testcases:
+TOTAL:
+  model: claude-sonnet-4-5-20250929
+  cost: $0.75623760
+  call_cnt: 29
+  latency: 435.61s
+  input_tokens: 791245
+  output_tokens: 22277
+  cache_read_tokens: 737697
+  cache_write_tokens: 53506
+SELECT: {}
+SUMMARIZE:
+  model: claude-sonnet-4-5-20250929
+  cost: $0.64372110
+  call_cnt: 19
+  latency: 336.54s
+  input_tokens: 748112
+  output_tokens: 17150
+  cache_read_tokens: 701142
+  cache_write_tokens: 46958
+SOLVE:
+  model: claude-sonnet-4-5-20250929
+  cost: $0.11251650
+  call_cnt: 10
+  latency: 99.06s
+  input_tokens: 43133
+  output_tokens: 5127
+  cache_read_tokens: 36555
+  cache_write_tokens: 6548
+REVIEW_SOLVER: {}
+REVIEW_SUMMARY: {}
+REVIEW_SUMMARY_SOLVE: {}
+FINISHED: {}
+
+==================================================
+========== Statistics ==========
+reach_success: 5/5 (100.00%)
+	- [1, 2, 3, 4, 5]
+reach_failure: 0/5 (0.00%)
+	- []
+unsatisfiable_constraints: 0/5 (0.00%)
+	- []
+new_coverage: 3/5 (60.00%)
+	- [1, 3, 5]
+crashes: 0/5 (0.00%)
+	- []
+hangs: 0/5 (0.00%)
+	- []
+
+
+==================================================
+DIRECTED TESTING METRICS
+==================================================

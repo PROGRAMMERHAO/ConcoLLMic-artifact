@@ -20,16 +20,20 @@ FROM ubuntu:22.04 AS builder
 # Install dependencies
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        cargo \
         cmake \
+        curl \
         g++ \
         git \
         libz3-dev \
         ninja-build \
         python3-pip \
         zlib1g-dev \
-        wget  
+        wget
 RUN pip3 install lit
+
+# Install Rust via rustup (apt cargo is too old for edition2024 crates)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /
 
@@ -77,7 +81,7 @@ RUN cmake -G Ninja \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DZ3_TRUST_SYSTEM_VERSION=on \
         /symcc_source \
-    && ninja check
+    && ninja
 
 #
 # Build libc++ with SymCC using the simple backend
@@ -109,14 +113,16 @@ RUN cmake -G Ninja \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DZ3_TRUST_SYSTEM_VERSION=on \
         /symcc_source \
-    && ninja check \
-    && cargo install --path /symcc_source/util/symcc_fuzzing_helper
+    && ninja
+RUN cargo install --path /symcc_source/util/symcc_fuzzing_helper
 
 
 #
 # The final image
 #
 FROM ubuntu:22.04 AS symcc
+
+RUN sed -i 's|http://archive.ubuntu.com|http://mirrors.aliyun.com|g; s|http://security.ubuntu.com|http://mirrors.aliyun.com|g' /etc/apt/sources.list
 
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \

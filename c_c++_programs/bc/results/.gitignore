@@ -1,0 +1,10 @@
+# Large verbose runtime logs
+concolic.log
+aflplusplus.log
+symcc.log
+symsan.log
+klee.log
+output/ConcoLLMic_*.log
+
+# Generated coverage files (reproducible from queue)
+output/gcov/

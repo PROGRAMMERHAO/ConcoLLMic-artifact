@@ -1,0 +1,1431 @@
+        -:    0:Source:storage.c
+        -:    0:Graph:./storage.gcno
+        -:    0:Data:./storage.gcda
+        -:    0:Runs:2083
+        -:    1:/*  This file is part of GNU bc.
+        -:    2:
+        -:    3:    Copyright (C) 1991-1994, 1997, 2006, 2008, 2012-2017 Free Software Foundation, Inc.
+        -:    4:
+        -:    5:    This program is free software; you can redistribute it and/or modify
+        -:    6:    it under the terms of the GNU General Public License as published by
+        -:    7:    the Free Software Foundation; either version 3 of the License , or
+        -:    8:    (at your option) any later version.
+        -:    9:
+        -:   10:    This program is distributed in the hope that it will be useful,
+        -:   11:    but WITHOUT ANY WARRANTY; without even the implied warranty of
+        -:   12:    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        -:   13:    GNU General Public License for more details.
+        -:   14:
+        -:   15:    You should have received a copy of the GNU General Public License
+        -:   16:    along with this program; see the file COPYING.  If not, see
+        -:   17:    <http://www.gnu.org/licenses>.
+        -:   18:
+        -:   19:    You may contact the author by:
+        -:   20:       e-mail:  philnelson@acm.org
+        -:   21:      us-mail:  Philip A. Nelson
+        -:   22:                Computer Science Department, 9062
+        -:   23:                Western Washington University
+        -:   24:                Bellingham, WA 98226-9062
+        -:   25:       
+        -:   26:*************************************************************************/
+        -:   27:
+        -:   28:/* storage.c:  Code and data storage manipulations.  This includes labels. */
+        -:   29:
+        -:   30:#include "bcdefs.h"
+        -:   31:#include "proto.h"
+        -:   32:
+        -:   33:/* Local prototypes */
+        -:   34:static bc_array_node *copy_tree (bc_array_node *ary_node, int depth);
+        -:   35:static bc_array *copy_array (bc_array *ary);
+        -:   36:
+        -:   37:
+        -:   38:/* Initialize the storage at the beginning of the run. */
+        -:   39:
+        -:   40:void
+function init_storage called 2083 returned 100% blocks executed 100%
+     2083:   41:init_storage (void)
+        -:   42:{
+        -:   43:
+        -:   44:  /* Functions: we start with none and ask for more. */
+     2083:   45:  f_count = 0;
+     2083:   46:  more_functions ();
+call    0 returned 100%
+     2083:   47:  f_names[0] = strdup("(main)");
+        -:   48:
+        -:   49:  /* Variables. */
+     2083:   50:  v_count = 0;
+     2083:   51:  more_variables ();
+call    0 returned 100%
+        -:   52:  
+        -:   53:  /* Arrays. */
+     2083:   54:  a_count = 0;
+     2083:   55:  more_arrays ();
+call    0 returned 100%
+        -:   56:
+        -:   57:  /* Other things... */
+     2083:   58:  ex_stack = NULL;
+     2083:   59:  fn_stack = NULL;
+     2083:   60:  i_base = 10;
+     2083:   61:  o_base = 10;
+     2083:   62:  scale  = 0;
+        -:   63:#if defined(READLINE) || defined(LIBEDIT)
+        -:   64:  n_history = -1;	
+        -:   65:#endif
+     2083:   66:  c_code = FALSE;
+     2083:   67:  bc_init_numbers();
+call    0 returned 100%
+     2083:   68:}
+        -:   69:
+        -:   70:/* Three functions for increasing the number of functions, variables, or
+        -:   71:   arrays that are needed.  This adds another 32 of the requested object. */
+        -:   72:
+        -:   73:void
+function more_functions called 2083 returned 100% blocks executed 83%
+     2083:   74:more_functions (void)
+        -:   75:{
+     2083:   76:  int old_count;
+     2083:   77:  int indx;
+     2083:   78:  bc_function *old_f;
+     2083:   79:  bc_function *f;
+     2083:   80:  char **old_names;
+        -:   81:
+        -:   82:  /* Save old information. */
+     2083:   83:  old_count = f_count;
+     2083:   84:  old_f = functions;
+     2083:   85:  old_names = f_names;
+        -:   86:
+        -:   87:  /* Add a fixed amount and allocate new space. */
+     2083:   88:  f_count += STORE_INCR;
+     2083:   89:  functions = bc_malloc (f_count*sizeof (bc_function));
+call    0 returned 100%
+     2083:   90:  f_names = bc_malloc (f_count*sizeof (char *));
+call    0 returned 100%
+        -:   91:
+        -:   92:  /* Copy old ones. */
+    2083*:   93:  for (indx = 0; indx < old_count; indx++)
+branch  0 taken 0%
+branch  1 taken 100% (fallthrough)
+        -:   94:    {
+    #####:   95:      functions[indx] = old_f[indx];
+    #####:   96:      f_names[indx] = old_names[indx];
+        -:   97:    }
+        -:   98:
+        -:   99:  /* Initialize the new ones. */
+    68739:  100:  for (; indx < f_count; indx++)
+branch  0 taken 97%
+branch  1 taken 3% (fallthrough)
+        -:  101:    {
+    66656:  102:      f = &functions[indx];
+    66656:  103:      f->f_defined = FALSE;
+    66656:  104:      f->f_void = FALSE;
+    66656:  105:      f->f_body = bc_malloc (BC_START_SIZE);
+call    0 returned 100%
+    66656:  106:      f->f_body_size = BC_START_SIZE;
+    66656:  107:      f->f_code_size = 0;
+    66656:  108:      f->f_label = NULL;
+    66656:  109:      f->f_autos = NULL;
+    66656:  110:      f->f_params = NULL;
+        -:  111:    }
+        -:  112:
+        -:  113:  /* Free the old elements. */
+     2083:  114:  if (old_count != 0)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  115:    {
+    #####:  116:      free (old_f);
+    #####:  117:      free (old_names);
+        -:  118:    }
+     2083:  119:}
+        -:  120:
+        -:  121:void
+function more_variables called 2289 returned 100% blocks executed 100%
+     2289:  122:more_variables (void)
+        -:  123:{
+     2289:  124:  int indx;
+     2289:  125:  int old_count;
+     2289:  126:  bc_var **old_var;
+     2289:  127:  char **old_names;
+        -:  128:
+        -:  129:  /* Save the old values. */
+     2289:  130:  old_count = v_count;
+     2289:  131:  old_var = variables;
+     2289:  132:  old_names = v_names;
+        -:  133:
+        -:  134:  /* Increment by a fixed amount and allocate. */
+     2289:  135:  v_count += STORE_INCR;
+     2289:  136:  variables = bc_malloc (v_count*sizeof(bc_var *));
+call    0 returned 100%
+     2289:  137:  v_names = bc_malloc (v_count*sizeof(char *));
+call    0 returned 100%
+        -:  138:
+        -:  139:  /* Copy the old variables. */
+     8391:  140:  for (indx = 3; indx < old_count; indx++)
+branch  0 taken 73%
+branch  1 taken 27% (fallthrough)
+        -:  141:    {
+     6102:  142:      variables[indx] = old_var[indx];
+     6102:  143:      v_names[indx] = old_names[indx];
+        -:  144:    }
+        -:  145:
+        -:  146:  /* Initialize the new elements. */
+    69288:  147:  for (; indx < v_count; indx++)
+branch  0 taken 97%
+branch  1 taken 3% (fallthrough)
+    66999:  148:    variables[indx] = NULL;
+        -:  149:
+        -:  150:  /* Free the old elements. */
+     2289:  151:  if (old_count != 0)
+branch  0 taken 9% (fallthrough)
+branch  1 taken 91%
+        -:  152:    {
+      206:  153:      free (old_var);
+      206:  154:      free (old_names);
+        -:  155:    }
+     2289:  156:}
+        -:  157:
+        -:  158:void
+function more_arrays called 2083 returned 100% blocks executed 82%
+     2083:  159:more_arrays (void)
+        -:  160:{
+     2083:  161:  int indx;
+     2083:  162:  int old_count;
+     2083:  163:  bc_var_array **old_ary;
+     2083:  164:  char **old_names;
+        -:  165:
+        -:  166:  /* Save the old values. */
+     2083:  167:  old_count = a_count;
+     2083:  168:  old_ary = arrays;
+     2083:  169:  old_names = a_names;
+        -:  170:
+        -:  171:  /* Increment by a fixed amount and allocate. */
+     2083:  172:  a_count += STORE_INCR;
+     2083:  173:  arrays = bc_malloc (a_count*sizeof(bc_var_array *));
+call    0 returned 100%
+     2083:  174:  a_names = bc_malloc (a_count*sizeof(char *));
+call    0 returned 100%
+        -:  175:
+        -:  176:  /* Copy the old arrays. */
+    2083*:  177:  for (indx = 1; indx < old_count; indx++)
+branch  0 taken 0%
+branch  1 taken 100% (fallthrough)
+        -:  178:    {
+    #####:  179:      arrays[indx] = old_ary[indx];
+    #####:  180:      a_names[indx] = old_names[indx];
+        -:  181:    }
+        -:  182:
+        -:  183:
+        -:  184:  /* Initialize the new elements. */
+    66656:  185:  for (; indx < a_count; indx++)
+branch  0 taken 97%
+branch  1 taken 3% (fallthrough)
+    64573:  186:    arrays[indx] = NULL;
+        -:  187:
+        -:  188:  /* Free the old elements. */
+     2083:  189:  if (old_count != 0)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  190:    {
+    #####:  191:      free (old_ary);
+    #####:  192:      free (old_names);
+        -:  193:    }
+     2083:  194:}
+        -:  195:
+        -:  196:
+        -:  197:/* clear_func clears out function FUNC and makes it ready to redefine. */
+        -:  198:
+        -:  199:void
+function clear_func called 186340 returned 100% blocks executed 60%
+   186340:  200:clear_func (int func)
+        -:  201:{
+   186340:  202:  bc_function *f;
+   186340:  203:  bc_label_group *lg;
+        -:  204:
+        -:  205:  /* Set the pointer to the function. */
+   186340:  206:  f = &functions[func];
+   186340:  207:  f->f_defined = FALSE;
+        -:  208:  /* XXX restore f_body to initial size??? */
+   186340:  209:  f->f_code_size = 0;
+   186340:  210:  if (f->f_autos != NULL)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  211:    {
+    #####:  212:      free_args (f->f_autos);
+call    0 never executed
+    #####:  213:      f->f_autos = NULL;
+        -:  214:    }
+   186340:  215:  if (f->f_params != NULL)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  216:    {
+    #####:  217:      free_args (f->f_params);
+call    0 never executed
+    #####:  218:      f->f_params = NULL;
+        -:  219:    }
+   199205:  220:  while (f->f_label != NULL)
+branch  0 taken 6%
+branch  1 taken 94% (fallthrough)
+        -:  221:    {
+    12865:  222:      lg = f->f_label->l_next;
+    12865:  223:      free (f->f_label);
+    12865:  224:      f->f_label = lg;
+        -:  225:    }
+   186340:  226:}
+        -:  227:
+        -:  228:
+        -:  229:/*  Pop the function execution stack and return the top. */
+        -:  230:
+        -:  231:int
+function fpop called 0 returned 0% blocks executed 0%
+    #####:  232:fpop(void)
+        -:  233:{
+    #####:  234:  fstack_rec *temp;
+    #####:  235:  int retval;
+        -:  236:  
+    #####:  237:  if (fn_stack != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  238:    {
+    #####:  239:      temp = fn_stack;
+    #####:  240:      fn_stack = temp->s_next;
+    #####:  241:      retval = temp->s_val;
+    #####:  242:      free (temp);
+        -:  243:    }
+        -:  244:  else
+        -:  245:    {
+    #####:  246:      retval = 0;
+    #####:  247:      rt_error ("function stack underflow, contact maintainer.");
+call    0 never executed
+        -:  248:    }
+    #####:  249:  return (retval);
+        -:  250:}
+        -:  251:
+        -:  252:
+        -:  253:/* Push VAL on to the function stack. */
+        -:  254:
+        -:  255:void
+function fpush called 0 returned 0% blocks executed 0%
+    #####:  256:fpush (int val)
+        -:  257:{
+    #####:  258:  fstack_rec *temp;
+        -:  259:  
+    #####:  260:  temp = bc_malloc (sizeof (fstack_rec));
+call    0 never executed
+    #####:  261:  temp->s_next = fn_stack;
+    #####:  262:  temp->s_val = val;
+    #####:  263:  fn_stack = temp;
+    #####:  264:}
+        -:  265:
+        -:  266:
+        -:  267:/* Pop and discard the top element of the regular execution stack. */
+        -:  268:
+        -:  269:void
+function pop called 358524 returned 100% blocks executed 100%
+   358524:  270:pop (void)
+        -:  271:{
+   358524:  272:  estack_rec *temp;
+        -:  273:  
+   358524:  274:  if (ex_stack != NULL)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -:  275:    {
+   358524:  276:      temp = ex_stack;
+   358524:  277:      ex_stack = temp->s_next;
+   358524:  278:      bc_free_num (&temp->s_num);
+call    0 returned 100%
+   358524:  279:      free (temp);
+        -:  280:    }
+   358524:  281:}
+        -:  282:
+        -:  283:
+        -:  284:/* Push a copy of NUM on to the regular execution stack. */
+        -:  285:
+        -:  286:void
+function push_copy called 155101 returned 100% blocks executed 100%
+   155101:  287:push_copy (bc_num num)
+        -:  288:{
+   155101:  289:  estack_rec *temp;
+        -:  290:
+   155101:  291:  temp = bc_malloc (sizeof (estack_rec));
+call    0 returned 100%
+   155101:  292:  temp->s_num = bc_copy_num (num);
+call    0 returned 100%
+   155101:  293:  temp->s_next = ex_stack;
+   155101:  294:  ex_stack = temp;
+   155101:  295:}
+        -:  296:
+        -:  297:
+        -:  298:/* Push NUM on to the regular execution stack.  Do NOT push a copy. */
+        -:  299:
+        -:  300:void
+function push_num called 203423 returned 100% blocks executed 100%
+   203423:  301:push_num (bc_num num)
+        -:  302:{
+   203423:  303:  estack_rec *temp;
+        -:  304:
+   203423:  305:  temp = bc_malloc (sizeof (estack_rec));
+call    0 returned 100%
+   203423:  306:  temp->s_num = num;
+   203423:  307:  temp->s_next = ex_stack;
+   203423:  308:  ex_stack = temp;
+   203423:  309:}
+        -:  310:
+        -:  311:
+        -:  312:/* Make sure the ex_stack has at least DEPTH elements on it.
+        -:  313:   Return TRUE if it has at least DEPTH elements, otherwise
+        -:  314:   return FALSE. */
+        -:  315:
+        -:  316:char
+function check_stack called 136572 returned 100% blocks executed 71%
+   136572:  317:check_stack (int depth)
+        -:  318:{
+   136572:  319:  estack_rec *temp;
+        -:  320:
+   136572:  321:  temp = ex_stack;
+   400291:  322:  while ((temp != NULL) && (depth > 0))
+branch  0 taken 66%
+branch  1 taken 34% (fallthrough)
+        -:  323:    {
+   263719:  324:      temp = temp->s_next;
+   263719:  325:      depth--;
+        -:  326:    }
+   136572:  327:  if (depth > 0)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  328:    {
+    #####:  329:      rt_error ("Stack error.");
+    #####:  330:      return FALSE;
+call    0 never executed
+        -:  331:    }
+        -:  332:  return TRUE;
+        -:  333:}
+        -:  334:
+        -:  335:
+        -:  336:/* The following routines manipulate simple variables and
+        -:  337:   array variables. */
+        -:  338:
+        -:  339:/* get_var returns a pointer to the variable VAR_NAME.  If one does not
+        -:  340:   exist, one is created. */
+        -:  341:
+        -:  342:bc_var *
+function get_var called 111808 returned 100% blocks executed 100%
+   111808:  343:get_var (int var_name)
+        -:  344:{
+   111808:  345:  bc_var *var_ptr;
+        -:  346:
+   111808:  347:  var_ptr = variables[var_name];
+   111808:  348:  if (var_ptr == NULL)
+branch  0 taken 2% (fallthrough)
+branch  1 taken 98%
+        -:  349:    {
+     2546:  350:      var_ptr = variables[var_name] = bc_malloc (sizeof (bc_var));
+call    0 returned 100%
+     2546:  351:      bc_init_num (&var_ptr->v_value);
+call    0 returned 100%
+        -:  352:    }
+   111808:  353:  return var_ptr;
+        -:  354:}
+        -:  355:
+        -:  356:
+        -:  357:/* get_array_num returns the address of the bc_num in the array
+        -:  358:   structure.  If more structure is requried to get to the index,
+        -:  359:   this routine does the work to create that structure. VAR_INDEX
+        -:  360:   is a zero based index into the arrays storage array. INDEX is
+        -:  361:   the index into the bc array. */
+        -:  362:
+        -:  363:bc_num *
+function get_array_num called 9712 returned 100% blocks executed 100%
+     9712:  364:get_array_num (int var_index, unsigned long idx)
+        -:  365:{
+     9712:  366:  bc_var_array *ary_ptr;
+     9712:  367:  bc_array *a_var;
+     9712:  368:  bc_array_node *temp;
+     9712:  369:  int log;
+     9712:  370:  unsigned int ix, ix1;
+     9712:  371:  int sub [NODE_DEPTH];
+        -:  372:
+        -:  373:  /* Get the array entry. */
+     9712:  374:  ary_ptr = arrays[var_index];
+     9712:  375:  if (ary_ptr == NULL)
+branch  0 taken 5% (fallthrough)
+branch  1 taken 95%
+        -:  376:    {
+      532:  377:      ary_ptr = arrays[var_index] = bc_malloc (sizeof (bc_var_array));
+call    0 returned 100%
+      532:  378:      ary_ptr->a_value = NULL;
+      532:  379:      ary_ptr->a_next = NULL;
+      532:  380:      ary_ptr->a_param = FALSE;
+        -:  381:    }
+        -:  382:
+     9712:  383:  a_var = ary_ptr->a_value;
+     9712:  384:  if (a_var == NULL) {
+branch  0 taken 5% (fallthrough)
+branch  1 taken 95%
+      532:  385:    a_var = ary_ptr->a_value = bc_malloc (sizeof (bc_array));
+call    0 returned 100%
+      532:  386:    a_var->a_tree = NULL;
+      532:  387:    a_var->a_depth = 0;
+        -:  388:  }
+        -:  389:
+        -:  390:  /* Get the index variable. */
+     9712:  391:  sub[0] = idx & NODE_MASK;
+     9712:  392:  ix = idx >> NODE_SHIFT;
+     9712:  393:  log = 1;
+    32573:  394:  while (ix > 0 || log < a_var->a_depth)
+branch  0 taken 26%
+branch  1 taken 74% (fallthrough)
+branch  2 taken 60%
+branch  3 taken 40% (fallthrough)
+        -:  395:    {
+    22861:  396:      sub[log] = ix & NODE_MASK;
+    22861:  397:      ix >>= NODE_SHIFT;
+    22861:  398:      log++;
+        -:  399:    }
+        -:  400:  
+        -:  401:  /* Build any tree that is necessary. */
+    10805:  402:  while (log > a_var->a_depth)
+branch  0 taken 10%
+branch  1 taken 90% (fallthrough)
+        -:  403:    {
+     1093:  404:      temp = bc_malloc (sizeof(bc_array_node));
+call    0 returned 100%
+     1093:  405:      if (a_var->a_depth != 0)
+branch  0 taken 49% (fallthrough)
+branch  1 taken 51%
+        -:  406:	{
+      561:  407:	  temp->n_items.n_down[0] = a_var->a_tree;
+    35904:  408:	  for (ix=1; ix < NODE_SIZE; ix++)
+branch  0 taken 98%
+branch  1 taken 2%
+    35343:  409:	    temp->n_items.n_down[ix] = NULL;
+        -:  410:	}
+        -:  411:      else
+        -:  412:	{
+    34580:  413:	  for (ix=0; ix < NODE_SIZE; ix++)
+branch  0 taken 98%
+branch  1 taken 2% (fallthrough)
+    34048:  414:	    temp->n_items.n_num[ix] = bc_copy_num(_zero_);
+call    0 returned 100%
+        -:  415:	}
+     1093:  416:      a_var->a_tree = temp;
+     1093:  417:      a_var->a_depth++;
+        -:  418:    }
+        -:  419:  
+        -:  420:  /* Find the indexed variable. */
+     9712:  421:  temp = a_var->a_tree;
+    32573:  422:  while ( log-- > 1)
+branch  0 taken 70%
+branch  1 taken 30% (fallthrough)
+        -:  423:    {
+    22861:  424:      ix1 = sub[log];
+    22861:  425:      if (temp->n_items.n_down[ix1] == NULL)
+branch  0 taken 3% (fallthrough)
+branch  1 taken 97%
+        -:  426:	{
+      746:  427:	  temp->n_items.n_down[ix1] = bc_malloc (sizeof(bc_array_node));
+call    0 returned 100%
+      746:  428:	  temp = temp->n_items.n_down[ix1];
+      746:  429:	  if (log > 1)
+branch  0 taken 42% (fallthrough)
+branch  1 taken 58%
+    28340:  430:	    for (ix=0; ix < NODE_SIZE; ix++)
+branch  0 taken 98%
+branch  1 taken 2%
+    27904:  431:	      temp->n_items.n_down[ix] = NULL;
+        -:  432:	  else
+    20150:  433:	    for (ix=0; ix < NODE_SIZE; ix++)
+branch  0 taken 98%
+branch  1 taken 2% (fallthrough)
+    19840:  434:	      temp->n_items.n_num[ix] = bc_copy_num(_zero_);
+call    0 returned 100%
+        -:  435:	}
+        -:  436:      else
+        -:  437:	temp = temp->n_items.n_down[ix1];
+        -:  438:    }
+        -:  439:  
+        -:  440:  /* Return the address of the indexed variable. */
+     9712:  441:  return &(temp->n_items.n_num[sub[0]]);
+        -:  442:}
+        -:  443:
+        -:  444:
+        -:  445:/* Store the top of the execution stack into VAR_NAME.  
+        -:  446:   This includes the special variables ibase, obase, and scale. */
+        -:  447:
+        -:  448:void
+function store_var called 109421 returned 100% blocks executed 17%
+   109421:  449:store_var (int var_name)
+        -:  450:{
+   109421:  451:  bc_var *var_ptr;
+   109421:  452:  long temp;
+   109421:  453:  char toobig;
+        -:  454:
+   109421:  455:  if (var_name > 3)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -:  456:    {
+        -:  457:      /* It is a simple variable. */
+   109421:  458:      var_ptr = get_var (var_name);
+call    0 returned 100%
+   109421:  459:      if (var_ptr != NULL)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -:  460:	{
+   109421:  461:	  bc_free_num(&var_ptr->v_value);
+call    0 returned 100%
+   109421:  462:	  var_ptr->v_value = bc_copy_num (ex_stack->s_num);
+call    0 returned 100%
+        -:  463:	}
+        -:  464:    }
+        -:  465:  else
+        -:  466:    {
+        -:  467:      /* It is a special variable... */
+    #####:  468:      toobig = FALSE;
+    #####:  469:      temp = 0;
+    #####:  470:      if (bc_is_neg (ex_stack->s_num))
+call    0 never executed
+branch  1 never executed
+branch  2 never executed
+        -:  471:	{
+    #####:  472:	  switch (var_name)
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  473:	    {
+    #####:  474:	    case 0:
+    #####:  475:	      rt_warn ("negative ibase, set to 2");
+    #####:  476:	      temp = 2;
+    #####:  477:	      break;
+call    0 never executed
+    #####:  478:	    case 1:
+    #####:  479:	      rt_warn ("negative obase, set to 2");
+    #####:  480:	      temp = 2;
+    #####:  481:	      break;
+call    0 never executed
+    #####:  482:	    case 2:
+    #####:  483:	      rt_warn ("negative scale, set to 0");
+    #####:  484:	      temp = 0;
+    #####:  485:	      break;
+call    0 never executed
+        -:  486:#if defined(READLINE) || defined(LIBEDIT)
+        -:  487:	    case 3:
+        -:  488:	      temp = -1;
+        -:  489:	      break;
+        -:  490:#endif
+        -:  491:	    }
+        -:  492:	}
+        -:  493:      else
+        -:  494:	{
+    #####:  495:	  temp = bc_num2long (ex_stack->s_num);
+call    0 never executed
+    #####:  496:	  if (!bc_is_zero (ex_stack->s_num) && temp == 0)
+call    0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+branch  4 never executed
+    #####:  497:	    toobig = TRUE;
+        -:  498:	}
+    #####:  499:      switch (var_name)
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  500:	{
+    #####:  501:	case 0:
+    #####:  502:	  if (temp < 2 && !toobig)
+branch  0 never executed
+branch  1 never executed
+        -:  503:	    {
+    #####:  504:	      i_base = 2;
+    #####:  505:	      rt_warn ("ibase too small, set to 2");
+call    0 never executed
+        -:  506:	    }
+        -:  507:	  else
+    #####:  508:	    if (temp > 16 || toobig)
+branch  0 never executed
+branch  1 never executed
+        -:  509:	      {
+    #####:  510:	        if (std_only)
+branch  0 never executed
+branch  1 never executed
+        -:  511:                  {
+    #####:  512:		    i_base = 16;  
+    #####:  513:		    rt_warn ("ibase too large, set to 16");
+call    0 never executed
+        -:  514:                  } 
+    #####:  515:                else if (temp > 36 || toobig) 
+branch  0 never executed
+branch  1 never executed
+        -:  516:                  {
+    #####:  517:		    i_base = 36;
+    #####:  518:		    rt_warn ("ibase too large, set to 36");
+call    0 never executed
+        -:  519:                  }
+        -:  520:                else
+        -:  521:                  { 
+    #####:  522:                     if (temp >= 16 && warn_not_std)
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+    #####:  523:                       rt_warn ("ibase larger than 16 is non-standard");
+call    0 never executed
+    #####:  524:		     i_base = temp;
+        -:  525:                  }
+        -:  526:	      }
+        -:  527:	    else
+    #####:  528:	      i_base = (int) temp;
+        -:  529:	  break;
+        -:  530:
+    #####:  531:	case 1:
+    #####:  532:	  if (temp < 2 && !toobig)
+branch  0 never executed
+branch  1 never executed
+        -:  533:	    {
+    #####:  534:	      o_base = 2;
+    #####:  535:	      rt_warn ("obase too small, set to 2");
+call    0 never executed
+        -:  536:	    }
+        -:  537:	  else
+    #####:  538:	    if (temp > BC_BASE_MAX || toobig)
+branch  0 never executed
+branch  1 never executed
+        -:  539:	      {
+    #####:  540:		o_base = BC_BASE_MAX;
+    #####:  541:		rt_warn ("obase too large, set to %d", BC_BASE_MAX);
+call    0 never executed
+        -:  542:	      }
+        -:  543:	    else
+    #####:  544:	      o_base = (int) temp;
+        -:  545:	  break;
+        -:  546:
+    #####:  547:	case 2:
+        -:  548:	  /*  WARNING:  The following if statement may generate a compiler
+        -:  549:	      warning if INT_MAX == LONG_MAX.  This is NOT a problem. */
+    #####:  550:	  if (temp > BC_SCALE_MAX || toobig )
+branch  0 never executed
+branch  1 never executed
+        -:  551:	    {
+    #####:  552:	      scale = BC_SCALE_MAX;
+    #####:  553:	      rt_warn ("scale too large, set to %d", BC_SCALE_MAX);
+call    0 never executed
+        -:  554:	    }
+        -:  555:	  else
+    #####:  556:	    scale = (int) temp;
+        -:  557:	  break;
+        -:  558:
+        -:  559:#if defined(READLINE) || defined(LIBEDIT)
+        -:  560:	case 3:
+        -:  561:	  if (toobig)
+        -:  562:	    {
+        -:  563:	      temp = -1;
+        -:  564:	      rt_warn ("history too large, set to unlimited");
+        -:  565:	      UNLIMIT_HISTORY;
+        -:  566:	    }
+        -:  567:	  else
+        -:  568:	    {
+        -:  569:	      n_history = temp;
+        -:  570:	      if (temp < 0)
+        -:  571:		UNLIMIT_HISTORY;
+        -:  572:	      else
+        -:  573:		HISTORY_SIZE(n_history);
+        -:  574:	    }
+        -:  575:#endif
+        -:  576:	}
+        -:  577:    }
+   109421:  578:}
+        -:  579:
+        -:  580:
+        -:  581:/* Store the top of the execution stack into array VAR_NAME. 
+        -:  582:   VAR_NAME is the name of an array, and the next to the top
+        -:  583:   of stack for the index into the array. */
+        -:  584:
+        -:  585:void
+function store_array called 607 returned 100% blocks executed 100%
+      607:  586:store_array (int var_name)
+        -:  587:{
+      607:  588:  bc_num *num_ptr;
+      607:  589:  long idx;
+        -:  590:
+      607:  591:  if (!check_stack(2)) return;
+call    0 returned 100%
+branch  1 taken 100% (fallthrough)
+branch  2 taken 0%
+      607:  592:  idx = bc_num2long (ex_stack->s_next->s_num);
+call    0 returned 100%
+      607:  593:  if (idx < 0 || idx > BC_DIM_MAX ||
+branch  0 taken 99% (fallthrough)
+branch  1 taken 1%
+branch  2 taken 10% (fallthrough)
+branch  3 taken 90%
+       60:  594:      (idx == 0 && !bc_is_zero(ex_stack->s_next->s_num))) 
+call    0 returned 100%
+branch  1 taken 5% (fallthrough)
+branch  2 taken 95%
+        8:  595:    rt_error ("Array %s subscript out of bounds.", a_names[var_name]);
+call    0 returned 100%
+        -:  596:  else
+        -:  597:    {
+      599:  598:      num_ptr = get_array_num (var_name, idx);
+call    0 returned 100%
+      599:  599:      if (num_ptr != NULL)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -:  600:	{
+      599:  601:	  bc_free_num (num_ptr);
+call    0 returned 100%
+      599:  602:	  *num_ptr = bc_copy_num (ex_stack->s_num);
+call    0 returned 100%
+      599:  603:	  bc_free_num (&ex_stack->s_next->s_num);
+call    0 returned 100%
+      599:  604:	  ex_stack->s_next->s_num = ex_stack->s_num;
+      599:  605:	  bc_init_num (&ex_stack->s_num);
+call    0 returned 100%
+      599:  606:	  pop();
+call    0 returned 100%
+        -:  607:	}
+        -:  608:    }
+        -:  609:}
+        -:  610:
+        -:  611:
+        -:  612:/*  Load a copy of VAR_NAME on to the execution stack.  This includes
+        -:  613:    the special variables ibase, obase and scale.  */
+        -:  614:
+        -:  615:void
+function load_var called 101231 returned 100% blocks executed 36%
+   101231:  616:load_var (int var_name)
+        -:  617:{
+   101231:  618:  bc_var *var_ptr;
+        -:  619:
+   101231:  620:  switch (var_name)
+branch  0 taken 0%
+branch  1 taken 0%
+branch  2 taken 0%
+branch  3 taken 100%
+        -:  621:    {
+        -:  622:
+    #####:  623:    case 0:
+        -:  624:      /* Special variable ibase. */
+    #####:  625:      push_copy (_zero_);
+call    0 never executed
+    #####:  626:      bc_int2num (&ex_stack->s_num, i_base);
+    #####:  627:      break;
+call    0 never executed
+        -:  628:
+    #####:  629:    case 1:
+        -:  630:      /* Special variable obase. */
+    #####:  631:      push_copy (_zero_);
+call    0 never executed
+    #####:  632:      bc_int2num (&ex_stack->s_num, o_base);
+    #####:  633:      break;
+call    0 never executed
+        -:  634:
+    #####:  635:    case 2:
+        -:  636:      /* Special variable scale. */
+    #####:  637:      push_copy (_zero_);
+call    0 never executed
+    #####:  638:      bc_int2num (&ex_stack->s_num, scale);
+    #####:  639:      break;
+call    0 never executed
+        -:  640:
+        -:  641:#if defined(READLINE) || defined(LIBEDIT)
+        -:  642:    case 3:
+        -:  643:      /* Special variable history. */
+        -:  644:      push_copy (_zero_);
+        -:  645:      bc_int2num (&ex_stack->s_num, n_history);
+        -:  646:      break;
+        -:  647:#endif
+        -:  648:
+   101231:  649:    default:
+        -:  650:      /* It is a simple variable. */
+   101231:  651:      var_ptr = variables[var_name];
+   101231:  652:      if (var_ptr != NULL)
+branch  0 taken 31% (fallthrough)
+branch  1 taken 69%
+    31556:  653:	push_copy (var_ptr->v_value);
+call    0 returned 100%
+        -:  654:      else
+    69675:  655:	push_copy (_zero_);
+call    0 returned 100%
+        -:  656:    }
+   101231:  657:}
+        -:  658:
+        -:  659:
+        -:  660:/*  Load a copy of VAR_NAME on to the execution stack.  This includes
+        -:  661:    the special variables ibase, obase and scale.  */
+        -:  662:
+        -:  663:void
+function load_array called 7051 returned 100% blocks executed 100%
+     7051:  664:load_array (int var_name)
+        -:  665:{
+     7051:  666:  bc_num *num_ptr;
+     7051:  667:  long   idx;
+        -:  668:
+     7051:  669:  if (!check_stack(1)) return;
+call    0 returned 100%
+branch  1 taken 100% (fallthrough)
+branch  2 taken 0%
+     7051:  670:  idx = bc_num2long (ex_stack->s_num);
+call    0 returned 100%
+     7051:  671:  if (idx < 0 || idx > BC_DIM_MAX ||
+branch  0 taken 96% (fallthrough)
+branch  1 taken 4%
+branch  2 taken 16% (fallthrough)
+branch  3 taken 84%
+     1052:  672:     (idx == 0 && !bc_is_zero(ex_stack->s_num))) 
+call    0 returned 100%
+branch  1 taken 1% (fallthrough)
+branch  2 taken 99%
+      291:  673:    rt_error ("Array %s subscript out of bounds.", a_names[var_name]);
+call    0 returned 100%
+        -:  674:  else
+        -:  675:    {
+     6760:  676:      num_ptr = get_array_num (var_name, idx);
+call    0 returned 100%
+     6760:  677:      if (num_ptr != NULL)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -:  678:	{
+     6760:  679:	  pop();
+call    0 returned 100%
+     6760:  680:	  push_copy (*num_ptr);
+call    0 returned 100%
+        -:  681:	}
+        -:  682:    }
+        -:  683:}
+        -:  684:
+        -:  685:
+        -:  686:/* Decrement VAR_NAME by one.  This includes the special variables
+        -:  687:   ibase, obase, and scale. */
+        -:  688:
+        -:  689:void
+function decr_var called 548 returned 100% blocks executed 36%
+      548:  690:decr_var (int var_name)
+        -:  691:{
+      548:  692:  bc_var *var_ptr;
+        -:  693:
+      548:  694:  switch (var_name)
+branch  0 taken 0%
+branch  1 taken 0%
+branch  2 taken 0%
+branch  3 taken 100%
+        -:  695:    {
+        -:  696:
+    #####:  697:    case 0: /* ibase */
+    #####:  698:      if (i_base > 2)
+branch  0 never executed
+branch  1 never executed
+    #####:  699:	i_base--;
+        -:  700:      else
+    #####:  701:	rt_warn ("ibase too small in --");
+call    0 never executed
+        -:  702:      break;
+        -:  703:      
+    #####:  704:    case 1: /* obase */
+    #####:  705:      if (o_base > 2)
+branch  0 never executed
+branch  1 never executed
+    #####:  706:	o_base--;
+        -:  707:      else
+    #####:  708:	rt_warn ("obase too small in --");
+call    0 never executed
+        -:  709:      break;
+        -:  710:
+    #####:  711:    case 2: /* scale */
+    #####:  712:      if (scale > 0)
+branch  0 never executed
+branch  1 never executed
+    #####:  713:	scale--;
+        -:  714:      else
+    #####:  715:	rt_warn ("scale can not be negative in -- ");
+call    0 never executed
+        -:  716:      break;
+        -:  717:
+        -:  718:#if defined(READLINE) || defined(LIBEDIT)
+        -:  719:    case 3: /* history */
+        -:  720:      n_history--;
+        -:  721:      if (n_history >= 0)
+        -:  722:	HISTORY_SIZE(n_history);
+        -:  723:      else
+        -:  724:	{
+        -:  725:	  n_history = -1;
+        -:  726:	  rt_warn ("history is negative, set to unlimited");
+        -:  727:	  UNLIMIT_HISTORY;
+        -:  728:	}
+        -:  729:      break;
+        -:  730:#endif
+        -:  731:
+      548:  732:    default: /* It is a simple variable. */
+      548:  733:      var_ptr = get_var (var_name);
+call    0 returned 100%
+      548:  734:      if (var_ptr != NULL)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+      548:  735:	bc_sub (var_ptr->v_value,_one_,&var_ptr->v_value, 0);
+call    0 returned 100%
+        -:  736:    }
+      548:  737:}
+        -:  738:
+        -:  739:
+        -:  740:/* Decrement VAR_NAME by one.  VAR_NAME is an array, and the top of
+        -:  741:   the execution stack is the index and it is popped off the stack. */
+        -:  742:
+        -:  743:void
+function decr_array called 199 returned 100% blocks executed 100%
+      199:  744:decr_array (int var_name)
+        -:  745:{
+      199:  746:  bc_num *num_ptr;
+      199:  747:  long   idx;
+        -:  748:
+        -:  749:  /* It is an array variable. */
+      199:  750:  if (!check_stack (1)) return;
+call    0 returned 100%
+branch  1 taken 100% (fallthrough)
+branch  2 taken 0%
+      199:  751:  idx = bc_num2long (ex_stack->s_num);
+call    0 returned 100%
+      199:  752:  if (idx < 0 || idx > BC_DIM_MAX ||
+branch  0 taken 98% (fallthrough)
+branch  1 taken 2%
+branch  2 taken 96% (fallthrough)
+branch  3 taken 4%
+      188:  753:     (idx == 0 && !bc_is_zero (ex_stack->s_num))) 
+call    0 returned 100%
+branch  1 taken 2% (fallthrough)
+branch  2 taken 98%
+        8:  754:    rt_error ("Array %s subscript out of bounds.", a_names[var_name]);
+call    0 returned 100%
+        -:  755:  else
+        -:  756:    {
+      191:  757:      num_ptr = get_array_num (var_name, idx);
+call    0 returned 100%
+      191:  758:      if (num_ptr != NULL)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -:  759:	{
+      191:  760:	  pop ();
+call    0 returned 100%
+      191:  761:	  bc_sub (*num_ptr, _one_, num_ptr, 0);
+call    0 returned 100%
+        -:  762:	}
+        -:  763:    }
+        -:  764:}
+        -:  765:
+        -:  766:
+        -:  767:/* Increment VAR_NAME by one.  This includes the special variables
+        -:  768:   ibase, obase, and scale. */
+        -:  769:
+        -:  770:void
+function incr_var called 1839 returned 100% blocks executed 36%
+     1839:  771:incr_var (int var_name)
+        -:  772:{
+     1839:  773:  bc_var *var_ptr;
+        -:  774:
+     1839:  775:  switch (var_name)
+branch  0 taken 0%
+branch  1 taken 0%
+branch  2 taken 0%
+branch  3 taken 100%
+        -:  776:    {
+        -:  777:
+    #####:  778:    case 0: /* ibase */
+    #####:  779:      if (i_base < 16)
+branch  0 never executed
+branch  1 never executed
+    #####:  780:	i_base++;
+        -:  781:      else
+    #####:  782:	rt_warn ("ibase too big in ++");
+call    0 never executed
+        -:  783:      break;
+        -:  784:
+    #####:  785:    case 1: /* obase */
+    #####:  786:      if (o_base < BC_BASE_MAX)
+branch  0 never executed
+branch  1 never executed
+    #####:  787:	o_base++;
+        -:  788:      else
+    #####:  789:	rt_warn ("obase too big in ++");
+call    0 never executed
+        -:  790:      break;
+        -:  791:
+    #####:  792:    case 2:
+    #####:  793:      if (scale < BC_SCALE_MAX)
+branch  0 never executed
+branch  1 never executed
+    #####:  794:	scale++;
+        -:  795:      else
+    #####:  796:	rt_warn ("Scale too big in ++");
+call    0 never executed
+        -:  797:      break;
+        -:  798:
+        -:  799:#if defined(READLINE) || defined(LIBEDIT)
+        -:  800:    case 3: /* history */
+        -:  801:      n_history++;
+        -:  802:      if (n_history > 0)
+        -:  803:	HISTORY_SIZE(n_history);
+        -:  804:      else
+        -:  805:	{
+        -:  806:	  n_history = -1;
+        -:  807:	  rt_warn ("history set to unlimited");
+        -:  808:	  UNLIMIT_HISTORY;
+        -:  809:	}
+        -:  810:      break;	
+        -:  811:#endif
+        -:  812:
+     1839:  813:    default:  /* It is a simple variable. */
+     1839:  814:      var_ptr = get_var (var_name);
+call    0 returned 100%
+     1839:  815:      if (var_ptr != NULL)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+     1839:  816:	bc_add (var_ptr->v_value, _one_, &var_ptr->v_value, 0);
+call    0 returned 100%
+        -:  817:
+        -:  818:    }
+     1839:  819:}
+        -:  820:
+        -:  821:
+        -:  822:/* Increment VAR_NAME by one.  VAR_NAME is an array and top of
+        -:  823:   execution stack is the index and is popped off the stack. */
+        -:  824:
+        -:  825:void
+function incr_array called 2175 returned 100% blocks executed 100%
+     2175:  826:incr_array (int var_name)
+        -:  827:{
+     2175:  828:  bc_num *num_ptr;
+     2175:  829:  long   idx;
+        -:  830:
+     2175:  831:  if (!check_stack (1)) return;
+call    0 returned 100%
+branch  1 taken 100% (fallthrough)
+branch  2 taken 0%
+     2175:  832:  idx = bc_num2long (ex_stack->s_num);
+call    0 returned 100%
+     2175:  833:  if (idx < 0 || idx > BC_DIM_MAX ||
+branch  0 taken 99% (fallthrough)
+branch  1 taken 1%
+branch  2 taken 25% (fallthrough)
+branch  3 taken 75%
+      546:  834:      (idx == 0 && !bc_is_zero (ex_stack->s_num))) 
+call    0 returned 100%
+branch  1 taken 1% (fallthrough)
+branch  2 taken 100%
+       13:  835:    rt_error ("Array %s subscript out of bounds.", a_names[var_name]);
+call    0 returned 100%
+        -:  836:  else
+        -:  837:    {
+     2162:  838:      num_ptr = get_array_num (var_name, idx);
+call    0 returned 100%
+     2162:  839:      if (num_ptr != NULL)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -:  840:	{
+     2162:  841:	  pop ();
+call    0 returned 100%
+     2162:  842:	  bc_add (*num_ptr, _one_, num_ptr, 0);
+call    0 returned 100%
+        -:  843:	}
+        -:  844:    }
+        -:  845:}
+        -:  846:
+        -:  847:
+        -:  848:/* Routines for processing autos variables and parameters. */
+        -:  849:
+        -:  850:/* NAME is an auto variable that needs to be pushed on its stack. */
+        -:  851:
+        -:  852:void
+function auto_var called 0 returned 0% blocks executed 0%
+    #####:  853:auto_var (int name)
+        -:  854:{
+    #####:  855:  bc_var *v_temp;
+    #####:  856:  bc_var_array *a_temp;
+    #####:  857:  int ix;
+        -:  858:
+    #####:  859:  if (name > 0)
+branch  0 never executed
+branch  1 never executed
+        -:  860:    {
+        -:  861:      /* A simple variable. */
+    #####:  862:      ix = name;
+    #####:  863:      v_temp = bc_malloc (sizeof (bc_var));
+call    0 never executed
+    #####:  864:      v_temp->v_next = variables[ix];
+    #####:  865:      bc_init_num (&v_temp->v_value);
+call    0 never executed
+    #####:  866:      variables[ix] = v_temp;
+        -:  867:    }
+        -:  868:  else
+        -:  869:    {
+        -:  870:      /* An array variable. */
+    #####:  871:      ix = -name;
+    #####:  872:      a_temp = bc_malloc (sizeof (bc_var_array));
+call    0 never executed
+    #####:  873:      a_temp->a_next = arrays[ix];
+    #####:  874:      a_temp->a_value = NULL;
+    #####:  875:      a_temp->a_param = FALSE;
+    #####:  876:      arrays[ix] = a_temp;
+        -:  877:    } 
+    #####:  878:}
+        -:  879:
+        -:  880:
+        -:  881:/* Free_a_tree frees everything associated with an array variable tree.
+        -:  882:   This is used when popping an array variable off its auto stack.  */
+        -:  883:
+        -:  884:void
+function free_a_tree called 0 returned 0% blocks executed 0%
+    #####:  885:free_a_tree (bc_array_node *root, int depth)
+        -:  886:{
+    #####:  887:  int ix;
+        -:  888:
+    #####:  889:  if (root != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  890:    {
+    #####:  891:      if (depth > 1)
+branch  0 never executed
+branch  1 never executed
+    #####:  892:	for (ix = 0; ix < NODE_SIZE; ix++)
+branch  0 never executed
+branch  1 never executed
+    #####:  893:	  free_a_tree (root->n_items.n_down[ix], depth-1);
+call    0 never executed
+        -:  894:      else
+    #####:  895:	for (ix = 0; ix < NODE_SIZE; ix++)
+branch  0 never executed
+branch  1 never executed
+    #####:  896:	  bc_free_num ( &(root->n_items.n_num[ix]));
+call    0 never executed
+    #####:  897:      free (root);
+        -:  898:    }
+    #####:  899:}
+        -:  900:
+        -:  901:
+        -:  902:/* LIST is an NULL terminated list of varible names that need to be
+        -:  903:   popped off their auto stacks. */
+        -:  904:
+        -:  905:void
+function pop_vars called 0 returned 0% blocks executed 0%
+    #####:  906:pop_vars (arg_list *list)
+        -:  907:{
+    #####:  908:  bc_var *v_temp;
+    #####:  909:  bc_var_array *a_temp;
+    #####:  910:  int    ix;
+        -:  911:
+    #####:  912:  while (list != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  913:    {
+    #####:  914:      ix = list->av_name;
+    #####:  915:      if (ix > 0)
+branch  0 never executed
+branch  1 never executed
+        -:  916:	{
+        -:  917:	  /* A simple variable. */
+    #####:  918:	  v_temp = variables[ix];
+    #####:  919:	  if (v_temp != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  920:	    {
+    #####:  921:	      variables[ix] = v_temp->v_next;
+    #####:  922:	      bc_free_num (&v_temp->v_value);
+call    0 never executed
+    #####:  923:	      free (v_temp);
+        -:  924:	    }
+        -:  925:	}
+        -:  926:      else
+        -:  927:	{
+        -:  928:	  /* An array variable. */
+    #####:  929:	  ix = -ix;
+    #####:  930:	  a_temp = arrays[ix];
+    #####:  931:	  if (a_temp != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  932:	    {
+    #####:  933:	      arrays[ix] = a_temp->a_next;
+    #####:  934:	      if (!a_temp->a_param && a_temp->a_value != NULL)
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -:  935:		{
+    #####:  936:		  free_a_tree (a_temp->a_value->a_tree,
+    #####:  937:			       a_temp->a_value->a_depth);
+call    0 never executed
+    #####:  938:		  free (a_temp->a_value);
+        -:  939:		}
+    #####:  940:	      free (a_temp);
+        -:  941:	    }
+        -:  942:	} 
+    #####:  943:      list = list->next;
+        -:  944:    }
+    #####:  945:}
+        -:  946:
+        -:  947:/* COPY_NODE: Copies an array node for a call by value parameter. */
+        -:  948:static bc_array_node *
+function copy_tree called 0 returned 0% blocks executed 0%
+    #####:  949:copy_tree (bc_array_node *ary_node, int depth)
+        -:  950:{
+    #####:  951:  bc_array_node *res = bc_malloc (sizeof(bc_array_node));
+call    0 never executed
+    #####:  952:  int i;
+        -:  953:
+    #####:  954:  if (depth > 1)
+branch  0 never executed
+branch  1 never executed
+    #####:  955:    for (i=0; i<NODE_SIZE; i++)
+branch  0 never executed
+branch  1 never executed
+    #####:  956:      if (ary_node->n_items.n_down[i] != NULL)
+branch  0 never executed
+branch  1 never executed
+    #####:  957:	res->n_items.n_down[i] =
+    #####:  958:	  copy_tree (ary_node->n_items.n_down[i], depth - 1);
+call    0 never executed
+        -:  959:      else
+    #####:  960:	res->n_items.n_down[i] = NULL;
+        -:  961:  else
+    #####:  962:    for (i=0; i<NODE_SIZE; i++)
+branch  0 never executed
+branch  1 never executed
+    #####:  963:      if (ary_node->n_items.n_num[i] != NULL)
+branch  0 never executed
+branch  1 never executed
+    #####:  964:	res->n_items.n_num[i] = bc_copy_num (ary_node->n_items.n_num[i]);
+call    0 never executed
+        -:  965:      else
+    #####:  966:	res->n_items.n_num[i] = NULL;
+    #####:  967:  return res;
+        -:  968:}
+        -:  969:
+        -:  970:/* COPY_ARRAY: Copies an array for a call by value array parameter. 
+        -:  971:   ARY is the pointer to the bc_array structure. */
+        -:  972:
+        -:  973:static bc_array *
+function copy_array called 0 returned 0% blocks executed 0%
+    #####:  974:copy_array (bc_array *ary)
+        -:  975:{
+    #####:  976:  bc_array *res = bc_malloc (sizeof(bc_array));
+call    0 never executed
+    #####:  977:  res->a_depth = ary->a_depth;
+    #####:  978:  res->a_tree = copy_tree (ary->a_tree, ary->a_depth);
+call    0 never executed
+    #####:  979:  return (res);
+        -:  980:}
+        -:  981:
+        -:  982:
+        -:  983:/* A call is being made to FUNC.  The call types are at PC.  Process
+        -:  984:   the parameters by doing an auto on the parameter variable and then
+        -:  985:   store the value at the new variable or put a pointer the the array
+        -:  986:   variable. */
+        -:  987:
+        -:  988:void
+function process_params called 0 returned 0% blocks executed 0%
+    #####:  989:process_params (program_counter *progctr, int func)
+        -:  990:{
+    #####:  991:  char ch;
+    #####:  992:  arg_list *params;
+    #####:  993:  int ix, ix1;
+    #####:  994:  bc_var *v_temp;
+    #####:  995:  bc_var_array *a_src, *a_dest;
+        -:  996:  
+        -:  997:  /* Get the parameter names from the function. */
+    #####:  998:  params = functions[func].f_params;
+        -:  999:
+    #####: 1000:  while ((ch = byte(progctr)) != ':')
+call    0 never executed
+branch  1 never executed
+branch  2 never executed
+        -: 1001:    {
+    #####: 1002:      if (params != NULL)
+branch  0 never executed
+branch  1 never executed
+        -: 1003:	{
+    #####: 1004:	  if ((ch == '0') && params->av_name > 0)
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -: 1005:	    {
+        -: 1006:	      /* A simple variable. */
+    #####: 1007:	      ix = params->av_name;
+    #####: 1008:	      v_temp = bc_malloc (sizeof(bc_var));
+call    0 never executed
+    #####: 1009:	      v_temp->v_next = variables[ix];
+    #####: 1010:	      v_temp->v_value = ex_stack->s_num;
+    #####: 1011:	      bc_init_num (&ex_stack->s_num);
+call    0 never executed
+    #####: 1012:	      variables[ix] = v_temp;
+        -: 1013:	    }
+        -: 1014:	  else
+    #####: 1015:	    if ((ch == '1') && (params->av_name < 0))
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+        -: 1016:	      {
+        -: 1017:		/* The variables is an array variable. */
+        -: 1018:	
+        -: 1019:		/* Compute source index and make sure some structure exists. */
+    #####: 1020:		ix = (int) bc_num2long (ex_stack->s_num);
+call    0 never executed
+    #####: 1021:		(void) get_array_num (ix, 0);    
+call    0 never executed
+        -: 1022:	
+        -: 1023:		/* Push a new array and Compute Destination index */
+    #####: 1024:		auto_var (params->av_name);  
+call    0 never executed
+    #####: 1025:		ix1 = -params->av_name;
+        -: 1026:
+        -: 1027:		/* Set up the correct pointers in the structure. */
+    #####: 1028:		if (ix == ix1) 
+branch  0 never executed
+branch  1 never executed
+    #####: 1029:		  a_src = arrays[ix]->a_next;
+        -: 1030:		else
+    #####: 1031:		  a_src = arrays[ix];
+    #####: 1032:		a_dest = arrays[ix1];
+    #####: 1033:		if (params->arg_is_var)
+branch  0 never executed
+branch  1 never executed
+        -: 1034:		  {
+    #####: 1035:		    a_dest->a_param = TRUE;
+    #####: 1036:		    a_dest->a_value = a_src->a_value;
+        -: 1037:		  }
+        -: 1038:		else
+        -: 1039:		  {
+    #####: 1040:		    a_dest->a_param = FALSE;
+    #####: 1041:		    a_dest->a_value = copy_array (a_src->a_value);
+call    0 never executed
+        -: 1042:		  }
+        -: 1043:	      }
+        -: 1044:	    else
+        -: 1045:	      {
+    #####: 1046:		if (params->av_name < 0)
+branch  0 never executed
+branch  1 never executed
+    #####: 1047:		  rt_error ("Parameter type mismatch parameter %s.",
+    #####: 1048:			    a_names[-params->av_name]);
+call    0 never executed
+        -: 1049:		else
+    #####: 1050:		  rt_error ("Parameter type mismatch, parameter %s.",
+    #####: 1051:			    v_names[params->av_name]);
+call    0 never executed
+    #####: 1052:		params++;
+        -: 1053:	      }
+    #####: 1054:	  pop ();
+call    0 never executed
+        -: 1055:	}
+        -: 1056:      else
+        -: 1057:	{
+    #####: 1058:	    rt_error ("Parameter number mismatch");
+    #####: 1059:	    return;
+call    0 never executed
+        -: 1060:	}
+    #####: 1061:      params = params->next;
+        -: 1062:    }
+    #####: 1063:  if (params != NULL) 
+branch  0 never executed
+branch  1 never executed
+    #####: 1064:    rt_error ("Parameter number mismatch");
+call    0 never executed
+        -: 1065:}

@@ -1,0 +1,10 @@
+mode: monitor-only
+targets:
+- file_path: krep.c
+  line_start: 1556
+  line_end: 1556
+  reached: false
+  reached_by_tc_id: null
+  reached_at_time: null
+progress: "(n/a \u2014 monitor-only)"
+call_graph_size: 65

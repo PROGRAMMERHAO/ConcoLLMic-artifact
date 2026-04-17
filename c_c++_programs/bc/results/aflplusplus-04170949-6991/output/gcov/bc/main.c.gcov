@@ -1,0 +1,466 @@
+        -:    0:Source:main.c
+        -:    0:Graph:./main.gcno
+        -:    0:Data:./main.gcda
+        -:    0:Runs:2083
+        -:    1:/*  This file is part of GNU bc.
+        -:    2:
+        -:    3:    Copyright (C) 1991-1994, 1997, 2006, 2008, 2012-2017 Free Software Foundation, Inc.
+        -:    4:
+        -:    5:    This program is free software; you can redistribute it and/or modify
+        -:    6:    it under the terms of the GNU General Public License as published by
+        -:    7:    the Free Software Foundation; either version 3 of the License , or
+        -:    8:    (at your option) any later version.
+        -:    9:
+        -:   10:    This program is distributed in the hope that it will be useful,
+        -:   11:    but WITHOUT ANY WARRANTY; without even the implied warranty of
+        -:   12:    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        -:   13:    GNU General Public License for more details.
+        -:   14:
+        -:   15:    You should have received a copy of the GNU General Public License
+        -:   16:    along with this program; see the file COPYING.  If not, see
+        -:   17:    <http://www.gnu.org/licenses>.
+        -:   18:
+        -:   19:    You may contact the author by:
+        -:   20:       e-mail:  philnelson@acm.org
+        -:   21:      us-mail:  Philip A. Nelson
+        -:   22:                Computer Science Department, 9062
+        -:   23:                Western Washington University
+        -:   24:                Bellingham, WA 98226-9062
+        -:   25:       
+        -:   26:*************************************************************************/
+        -:   27:
+        -:   28:/* main.c: The main program for bc.  */
+        -:   29:
+        -:   30:#include "bcdefs.h"
+        -:   31:#include <signal.h>
+        -:   32:#include <errno.h>
+        -:   33:#include "proto.h"
+        -:   34:#include "getopt.h"
+        -:   35:
+        -:   36:
+        -:   37:/* Variables for processing multiple files. */
+        -:   38:static char first_file;
+        -:   39:
+        -:   40:/* Points to the last node in the file name list for easy adding. */
+        -:   41:static file_node *last = NULL;
+        -:   42:
+        -:   43:#if defined(LIBEDIT)
+        -:   44:/* The prompt for libedit. */
+        -:   45:char el_pmtchars[] = "";
+        -:   46:static char *el_pmtfunc(void);
+        -:   47:static char *el_pmtfunc(void) { return el_pmtchars; }
+        -:   48:#endif
+        -:   49:
+        -:   50:/* long option support */
+        -:   51:static struct option long_options[] =
+        -:   52:{
+        -:   53:  {"compile",     0, &compile_only, TRUE},
+        -:   54:  {"help",        0, 0,             'h'},
+        -:   55:  {"interactive", 0, 0,             'i'},
+        -:   56:  {"mathlib",     0, &use_math,     TRUE},
+        -:   57:  {"quiet",       0, &quiet,        TRUE},
+        -:   58:  {"standard",    0, &std_only,     TRUE},
+        -:   59:  {"version",     0, 0,             'v'},
+        -:   60:  {"warn",        0, &warn_not_std, TRUE},
+        -:   61:
+        -:   62:  {0, 0, 0, 0}
+        -:   63:};
+        -:   64:
+        -:   65:
+        -:   66:static void
+function usage called 0 returned 0% blocks executed 0%
+    #####:   67:usage (const char *progname)
+        -:   68:{
+    #####:   69:  printf ("usage: %s [options] [file ...]\n%s%s%s%s%s%s%s%s", progname,
+call    0 never executed
+        -:   70:          "  -h  --help         print this usage and exit\n",
+        -:   71:	  "  -i  --interactive  force interactive mode\n",
+        -:   72:	  "  -l  --mathlib      use the predefined math routines\n",
+        -:   73:	  "  -q  --quiet        don't print initial banner\n",
+        -:   74:	  "  -s  --standard     non-standard bc constructs are errors\n",
+        -:   75:	  "  -w  --warn         warn about non-standard bc constructs\n",
+        -:   76:	  "  -v  --version      print version information and exit\n",
+        -:   77:	  "\nPlease report bugs to <bug-bc@gnu.org>\n");
+    #####:   78:}
+        -:   79:
+        -:   80:
+        -:   81:static void
+function parse_args called 2083 returned 100% blocks executed 26%
+     2083:   82:parse_args (int argc, char **argv)
+        -:   83:{
+     2083:   84:  int optch;
+     2083:   85:  int long_index;
+     2083:   86:  file_node *temp;
+        -:   87:
+        -:   88:  /* Force getopt to initialize.  Depends on GNU getopt. */
+     2083:   89:  optind = 0;
+        -:   90:
+        -:   91:  /* Parse the command line */
+     2083:   92:  while (1)
+        -:   93:    {
+     2083:   94:      optch = getopt_long (argc, argv, "chilqswv", long_options, &long_index);
+call    0 returned 100%
+        -:   95:
+     2083:   96:      if (optch == EOF)  /* End of arguments. */
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -:   97:	break;
+        -:   98:
+    #####:   99:      switch (optch)
+branch  0 never executed
+branch  1 never executed
+branch  2 never executed
+branch  3 never executed
+branch  4 never executed
+branch  5 never executed
+branch  6 never executed
+branch  7 never executed
+branch  8 never executed
+branch  9 never executed
+        -:  100:	{
+        -:  101:	case 0: /* Long option setting a var. */
+        -:  102:	  break;
+        -:  103:
+    #####:  104:	case 'c':  /* compile only */
+    #####:  105:	  compile_only = TRUE;
+    #####:  106:	  break;
+        -:  107:
+    #####:  108:	case 'h':  /* help */
+    #####:  109:	  usage(argv[0]);
+call    0 never executed
+    #####:  110:	  bc_exit (0);
+call    0 never executed
+    #####:  111:	  break;
+        -:  112:
+    #####:  113:	case 'i':  /* force interactive */
+    #####:  114:	  interactive = TRUE;
+    #####:  115:	  break;
+        -:  116:
+    #####:  117:	case 'l':  /* math lib */
+    #####:  118:	  use_math = TRUE;
+    #####:  119:	  break;
+        -:  120:
+    #####:  121:	case 'q':  /* quiet mode */
+    #####:  122:	  quiet = TRUE;
+    #####:  123:	  break;
+        -:  124:
+    #####:  125:	case 's':  /* Non standard features give errors. */
+    #####:  126:	  std_only = TRUE;
+    #####:  127:	  break;
+        -:  128:
+    #####:  129:	case 'v':  /* Print the version. */
+    #####:  130:	  show_bc_version ();
+call    0 never executed
+    #####:  131:	  bc_exit (0);
+call    0 never executed
+    #####:  132:	  break;
+        -:  133:
+    #####:  134:	case 'w':  /* Non standard features give warnings. */
+    #####:  135:	  warn_not_std = TRUE;
+    #####:  136:	  break;
+        -:  137:
+    #####:  138:	default:
+    #####:  139:	  usage(argv[0]);
+call    0 never executed
+    #####:  140:	  bc_exit (1);
+call    0 never executed
+        -:  141:	}
+        -:  142:    }
+        -:  143:
+        -:  144:#ifdef QUIET
+        -:  145:  quiet = TRUE;
+        -:  146:#endif
+        -:  147:
+        -:  148:  /* Add file names to a list of files to process. */
+     2083:  149:  while (optind < argc)
+branch  0 taken 0%
+branch  1 taken 100% (fallthrough)
+        -:  150:    {
+    #####:  151:      temp = bc_malloc(sizeof(file_node));
+call    0 never executed
+    #####:  152:      temp->name = argv[optind];
+    #####:  153:      temp->next = NULL;
+    #####:  154:      if (last == NULL)
+branch  0 never executed
+branch  1 never executed
+    #####:  155:	file_names = temp;
+        -:  156:      else
+    #####:  157:	last->next = temp;
+    #####:  158:      last = temp;
+    #####:  159:      optind++;
+        -:  160:    }
+     2083:  161:}
+        -:  162:
+        -:  163:/* The main program for bc. */
+        -:  164:int
+function main called 2083 returned 0% blocks executed 50%
+     2083:  165:main (int argc, char **argv)
+        -:  166:{
+     2083:  167:  char *env_value;
+     2083:  168:  char *env_argv[30];
+     2083:  169:  int   env_argc;
+        -:  170:  
+        -:  171:  /* Interactive? */
+    2083*:  172:  if (isatty(0) && isatty(1)) 
+call    0 returned 100%
+branch  1 taken 0% (fallthrough)
+branch  2 taken 100%
+call    3 never executed
+branch  4 never executed
+branch  5 never executed
+    #####:  173:    interactive = TRUE;
+        -:  174:
+        -:  175:#ifdef HAVE_SETVBUF
+        -:  176:  /* attempt to simplify interaction with applications such as emacs */
+     2083:  177:  (void) setvbuf(stdout, NULL, _IOLBF, 0);
+call    0 returned 100%
+        -:  178:#endif
+        -:  179:
+        -:  180:  /* Environment arguments. */
+     2083:  181:  env_value = getenv ("BC_ENV_ARGS");
+call    0 returned 100%
+     2083:  182:  if (env_value != NULL)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  183:    {
+    #####:  184:      env_argc = 1;
+    #####:  185:      env_argv[0] = strdup("BC_ENV_ARGS");
+    #####:  186:      while (*env_value != 0)
+branch  0 never executed
+branch  1 never executed
+        -:  187:	{
+    #####:  188:	  if (*env_value != ' ')
+branch  0 never executed
+branch  1 never executed
+        -:  189:	    {
+    #####:  190:	      env_argv[env_argc++] = env_value;
+    #####:  191:	      while (*env_value != ' ' && *env_value != 0)
+branch  0 never executed
+branch  1 never executed
+    #####:  192:		env_value++;
+    #####:  193:	      if (*env_value != 0)
+branch  0 never executed
+branch  1 never executed
+        -:  194:		{
+    #####:  195:		  *env_value = 0;
+    #####:  196:		  env_value++;
+        -:  197:		}
+        -:  198:	    }
+        -:  199:	  else
+    #####:  200:	    env_value++;
+        -:  201:	}
+    #####:  202:      parse_args (env_argc, env_argv);
+call    0 never executed
+        -:  203:    }
+        -:  204:
+        -:  205:  /* Command line arguments. */
+     2083:  206:  parse_args (argc, argv);
+call    0 returned 100%
+        -:  207:
+        -:  208:  /* Other environment processing. */
+     2083:  209:  if (getenv ("POSIXLY_CORRECT") != NULL)
+call    0 returned 100%
+branch  1 taken 0% (fallthrough)
+branch  2 taken 100%
+    #####:  210:    std_only = TRUE;
+        -:  211:
+     2083:  212:  env_value = getenv ("BC_LINE_LENGTH");
+call    0 returned 100%
+     2083:  213:  if (env_value != NULL)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  214:    {
+    #####:  215:      line_size = atoi (env_value);
+call    0 never executed
+    #####:  216:      if (line_size < 3 && line_size != 0)
+branch  0 never executed
+branch  1 never executed
+    #####:  217:	line_size = 70;
+        -:  218:    }
+        -:  219:  else
+     2083:  220:    line_size = 70;
+        -:  221:
+        -:  222:  /* Initialize the machine.  */
+     2083:  223:  init_storage();
+call    0 returned 100%
+     2083:  224:  init_load();
+call    0 returned 100%
+        -:  225:
+        -:  226:  /* Set up interrupts to print a message. */
+     2083:  227:  if (interactive)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+    #####:  228:    signal (SIGINT, use_quit);
+call    0 never executed
+        -:  229:
+        -:  230:  /* Initialize the front end. */
+     2083:  231:  init_tree();
+call    0 returned 100%
+     2083:  232:  init_gen ();
+call    0 returned 100%
+     2083:  233:  is_std_in = FALSE;
+     2083:  234:  first_file = TRUE;
+     2083:  235:  if (!open_new_file ())
+call    0 returned 100%
+branch  1 taken 0% (fallthrough)
+branch  2 taken 100%
+    #####:  236:    bc_exit (1);
+call    0 never executed
+        -:  237:
+        -:  238:#if defined(LIBEDIT)
+        -:  239:  if (interactive) {
+        -:  240:    /* Enable libedit support. */
+        -:  241:    edit = el_init ("bc", stdin, stdout, stderr);
+        -:  242:    hist = history_init();
+        -:  243:    el_set (edit, EL_EDITOR, "emacs");
+        -:  244:    el_set (edit, EL_HIST, history, hist);
+        -:  245:    el_set (edit, EL_PROMPT, el_pmtfunc);
+        -:  246:    el_source (edit, NULL);
+        -:  247:    history (hist, &histev, H_SETSIZE, INT_MAX);
+        -:  248:  }
+        -:  249:#endif
+        -:  250:
+        -:  251:#if defined(READLINE)
+        -:  252:  if (interactive) {
+        -:  253:    /* Readline support.  Set both application name and input file. */
+        -:  254:    rl_readline_name = "bc";
+        -:  255:    rl_instream = stdin;
+        -:  256:    using_history ();
+        -:  257:  }
+        -:  258:#endif
+        -:  259:
+        -:  260:  /* Do the parse. */
+     2083:  261:  yyparse ();
+call    0 returned 64%
+        -:  262:
+        -:  263:  /* End the compile only output with a newline. */
+     1333:  264:  if (compile_only)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+    #####:  265:    printf ("\n");
+call    0 never executed
+        -:  266:
+     1333:  267:  bc_exit (0);
+        -:  268:  return 0; // to keep the compiler from complaining
+        -:  269:}
+        -:  270:
+        -:  271:
+        -:  272:/* This is the function that opens all the files. 
+        -:  273:   It returns TRUE if the file was opened, otherwise
+        -:  274:   it returns FALSE. */
+        -:  275:
+        -:  276:int
+function open_new_file called 3414 returned 100% blocks executed 26%
+     3414:  277:open_new_file (void)
+        -:  278:{
+     3414:  279:  FILE *new_file;
+     3414:  280:  file_node *temp;
+        -:  281:
+        -:  282:  /* Set the line number. */
+     3414:  283:  line_no = 1;
+        -:  284:
+        -:  285:  /* Check to see if we are done. */
+     3414:  286:  if (is_std_in) return (FALSE);
+branch  0 taken 61% (fallthrough)
+branch  1 taken 39%
+        -:  287:
+        -:  288:  /* Open the other files. */
+    2083*:  289:  if (use_math && first_file)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+branch  2 never executed
+branch  3 never executed
+        -:  290:    {
+        -:  291:      /* Load the code from a precompiled version of the math libarary. */
+    #####:  292:      CONST char **mstr;
+        -:  293:
+        -:  294:      /* These MUST be in the order of first mention of each function.
+        -:  295:	 That is why "a" comes before "c" even though "a" is defined after
+        -:  296:	 after "c".  "a" is used in "s"! */
+    #####:  297:      (void) lookup (strdup("e"), FUNCT);
+call    0 never executed
+    #####:  298:      (void) lookup (strdup("l"), FUNCT);
+call    0 never executed
+    #####:  299:      (void) lookup (strdup("s"), FUNCT);
+call    0 never executed
+    #####:  300:      (void) lookup (strdup("a"), FUNCT);
+call    0 never executed
+    #####:  301:      (void) lookup (strdup("c"), FUNCT);
+call    0 never executed
+    #####:  302:      (void) lookup (strdup("j"), FUNCT);
+    #####:  303:      mstr = libmath;
+    #####:  304:      while (*mstr) {
+call    0 never executed
+branch  1 never executed
+branch  2 never executed
+    #####:  305:           load_code (*mstr);
+call    0 never executed
+    #####:  306:	   mstr++;
+        -:  307:      }
+        -:  308:    }
+        -:  309:  
+        -:  310:  /* One of the argv values. */
+     2083:  311:  if (file_names != NULL)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -:  312:    {
+    #####:  313:      new_file = fopen (file_names->name, "r");
+call    0 never executed
+    #####:  314:      if (new_file != NULL)
+branch  0 never executed
+branch  1 never executed
+        -:  315:	{
+    #####:  316:	  new_yy_file (new_file);
+call    0 never executed
+    #####:  317:	  temp = file_names;
+    #####:  318:	  file_name  = temp->name;
+    #####:  319:	  file_names = temp->next;
+    #####:  320:	  free (temp);
+    #####:  321:	  return TRUE;
+        -:  322:	}
+    #####:  323:      fprintf (stderr, "File %s is unavailable.\n", file_names->name);
+call    0 never executed
+    #####:  324:      bc_exit (1);
+call    0 never executed
+        -:  325:    }
+        -:  326:  
+        -:  327:  /* If we fall through to here, we should return stdin. */
+     2083:  328:  new_yy_file (stdin);
+call    0 returned 100%
+     2083:  329:  is_std_in = TRUE;
+     2083:  330:  return TRUE;
+        -:  331:}
+        -:  332:
+        -:  333:
+        -:  334:/* Set yyin to the new file. */
+        -:  335:
+        -:  336:void
+function new_yy_file called 2083 returned 100% blocks executed 67%
+     2083:  337:new_yy_file (FILE *file)
+        -:  338:{
+    2083*:  339:  if (!first_file) fclose (yyin);
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+call    2 never executed
+     2083:  340:  yyin = file;
+     2083:  341:  first_file = FALSE;
+     2083:  342:}
+        -:  343:
+        -:  344:
+        -:  345:/* Message to use quit.  */
+        -:  346:
+        -:  347:void
+function use_quit called 0 returned 0% blocks executed 0%
+    #####:  348:use_quit (int sig)
+        -:  349:{
+        -:  350:#ifdef DONTEXIT
+        -:  351:  int save = errno;
+        -:  352:  write (1, "\n(interrupt) use quit to exit.\n", 31);
+        -:  353:  signal (SIGINT, use_quit);
+        -:  354:  errno = save;
+        -:  355:#else
+    #####:  356:  write (1, "\n(interrupt) Exiting bc.\n", 26);
+call    0 never executed
+    #####:  357:  bc_exit(0);
+        -:  358:#endif
+        -:  359:}
